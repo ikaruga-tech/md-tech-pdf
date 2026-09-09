@@ -2,7 +2,10 @@
 # Generated files
 # ==========================
 
-generated/
+generated/**
+!generated/
+!generated/**/
+!generated/**/.gitkeep
 
 # ==========================
 # Dependencies
@@ -55,8 +58,8 @@ ms-playwright/
 # Temporary Files
 # ==========================
 
-tmp/
-temp/
+/tmp/
+/temp/
 .cache/
 
 # macOS
