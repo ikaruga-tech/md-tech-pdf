@@ -1,0 +1,113 @@
+# ==========================
+# Generated files
+# ==========================
+
+generated/
+
+# ==========================
+# Dependencies
+# ==========================
+
+node_modules/
+
+# ==========================
+# Build Output
+# ==========================
+
+dist/
+build/
+out/
+coverage/
+.nyc_output/
+
+*.tsbuildinfo
+
+# ==========================
+# Logs
+# ==========================
+
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================
+# Environment
+# ==========================
+
+.env
+.env.*
+!.env.example
+
+# ==========================
+# Playwright
+# ==========================
+
+playwright-report/
+test-results/
+
+# Browser binaries
+ms-playwright/
+
+# ==========================
+# Temporary Files
+# ==========================
+
+tmp/
+temp/
+.cache/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Linux
+*~
+
+# ==========================
+# IDE
+# ==========================
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+.idea/
+
+# ==========================
+# Generated PDFs
+# ==========================
+
+*.pdf
+
+# Keep sample PDFs
+!examples/**/*.pdf
+
+# ==========================
+# Generated Images
+# ==========================
+
+*.png
+*.svg
+
+# Keep sample images
+!examples/**/*.png
+!examples/**/*.svg
+
+# ==========================
+# Package Manager
+# ==========================
+
+.pnpm-store/
+
+# ==========================
+# Local Configuration
+# ==========================
+
+.local/
