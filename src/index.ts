@@ -7,6 +7,10 @@ export * from './types/diagram.js';
 export * from './parser/error.js';
 export * from './parser/attributes-parser.js';
 export * from './parser/markdown-parser.js';
+export * from './renderer/diagram-renderer.js';
+export * from './renderer/mermaid-renderer.js';
+export * from './renderer/mermaid-executor.js';
+export * from './renderer/error.js';
 
 export interface GeneratorOptions {
   inputPath?: string;
