@@ -14,6 +14,10 @@ export * from './renderer/error.js';
 export * from './html/default-style.js';
 export * from './html/html-builder.js';
 export * from './html/html-renderer.js';
+export * from './pdf/types.js';
+export * from './pdf/default-options.js';
+export * from './pdf/error.js';
+export * from './pdf/pdf-generator.js';
 
 export interface GeneratorOptions {
   inputPath?: string;
