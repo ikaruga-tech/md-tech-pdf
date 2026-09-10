@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "dev:mermaid": "tsx tools/test-mermaid.ts"
+    "dev:mermaid": "tsx tools/test-mermaid.ts",
+    "dev:html": "tsx tools/test-html.ts"
   },
   "keywords": [
     "markdown",

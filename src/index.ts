@@ -11,6 +11,9 @@ export * from './renderer/diagram-renderer.js';
 export * from './renderer/mermaid-renderer.js';
 export * from './renderer/mermaid-executor.js';
 export * from './renderer/error.js';
+export * from './html/default-style.js';
+export * from './html/html-builder.js';
+export * from './html/html-renderer.js';
 
 export interface GeneratorOptions {
   inputPath?: string;
