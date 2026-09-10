@@ -3,6 +3,11 @@
  * Core PDF generation engine decoupled from CLI and editor extensions.
  */
 
+export * from './types/diagram.js';
+export * from './parser/error.js';
+export * from './parser/attributes-parser.js';
+export * from './parser/markdown-parser.js';
+
 export interface GeneratorOptions {
   inputPath?: string;
   outputPath?: string;
