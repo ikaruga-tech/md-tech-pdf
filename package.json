@@ -12,7 +12,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli/index.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
