@@ -239,4 +239,16 @@ Server --> Client: API Response
     expect(html).toContain('Client');
     expect(html).toContain('Server');
   });
+
+  // 16. 印刷・PDF向けのスタイル（見出し孤立防止、preの折り返し、テーブルの自動レイアウト）が含まれる
+  it('16. should include layout rules for heading orphan prevention, pre wrapping, and table cell layout', async () => {
+    const markdown = '# Heading\n\n```\nconst x = 1;\n```';
+    const html = await renderer.render(markdown);
+
+    expect(html).toContain('break-after: avoid;');
+    expect(html).toContain('break-before: avoid;');
+    expect(html).toContain('white-space: pre-wrap;');
+    expect(html).toContain('overflow-wrap: anywhere;');
+    expect(html).toContain('table-layout: auto;');
+  });
 });

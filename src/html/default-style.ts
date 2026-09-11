@@ -45,6 +45,12 @@ h1, h2, h3, h4, h5, h6 {
   break-after: avoid;
 }
 
+/* Prevent heading orphans by keeping them with the subsequent content element */
+h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + * {
+  page-break-before: avoid;
+  break-before: avoid;
+}
+
 h1 {
   font-size: 2rem;
   padding-bottom: 0.4rem;
@@ -101,18 +107,22 @@ table {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
   display: table;
-  overflow-x: auto;
+  table-layout: auto;
 }
 
 table th, table td {
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border);
   text-align: left;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 table th {
   background-color: var(--color-code-bg);
   font-weight: 600;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 table tr:nth-child(2n) {
@@ -133,7 +143,6 @@ pre {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
   padding: 1rem;
-  overflow: auto;
   font-family: var(--font-mono);
   font-size: 85%;
   line-height: 1.45;
@@ -142,6 +151,9 @@ pre {
   border-radius: 6px;
   page-break-inside: avoid;
   break-inside: avoid;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 pre code {
@@ -149,6 +161,8 @@ pre code {
   background-color: transparent;
   border-radius: 0;
   font-size: 100%;
+  white-space: inherit;
+  overflow-wrap: inherit;
 }
 
 /* Links */
