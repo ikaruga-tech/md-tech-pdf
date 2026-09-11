@@ -1,9 +1,12 @@
+import type { FontOptions } from '../config/document-options.js';
 import type { DiagramFit, DiagramOptions } from '../types/diagram.js';
 import { DEFAULT_DOCUMENT_STYLE } from './default-style.js';
+import { buildFontFamilyCss, buildGoogleFontsUrl } from './google-fonts.js';
 
 export interface DocumentBuildOptions {
   title?: string;
   customCss?: string;
+  fontOptions?: FontOptions;
 }
 
 function escapeHtml(text: string): string {
@@ -64,18 +67,45 @@ export function buildDiagramContainer(svg: string, options: DiagramOptions): str
 export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOptions): string {
   const title = options?.title ?? 'md-tech-pdf';
   const customCss = options?.customCss ?? '';
+  const fontOptions = options?.fontOptions;
+
+  const googleFontsUrl = fontOptions?.google ? buildGoogleFontsUrl(fontOptions.google) : null;
+
+  const headLinks: string[] = [];
+  if (googleFontsUrl) {
+    headLinks.push(`  <link rel="stylesheet" href="${escapeHtml(googleFontsUrl)}">`);
+  }
+
+  const fontStyleRules: string[] = [];
+  if (fontOptions?.family) {
+    fontStyleRules.push(
+      `body { font-family: ${buildFontFamilyCss(fontOptions.family, 'sans-serif')}; }`
+    );
+  }
+  if (fontOptions?.codeFamily) {
+    fontStyleRules.push(
+      `code, pre { font-family: ${buildFontFamilyCss(fontOptions.codeFamily, 'monospace')}; }`
+    );
+  }
+  const fontCss = fontStyleRules.length > 0 ? fontStyleRules.join('\n') : '';
+
+  const headContent = [
+    '  <meta charset="UTF-8">',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    `  <title>${escapeHtml(title)}</title>`,
+    ...headLinks,
+    '  <style>',
+    DEFAULT_DOCUMENT_STYLE,
+    fontCss,
+    customCss,
+    '  </style>',
+  ].join('\n');
 
   return [
     '<!DOCTYPE html>',
     '<html lang="ja">',
     '<head>',
-    '  <meta charset="UTF-8">',
-    '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    `  <title>${escapeHtml(title)}</title>`,
-    '  <style>',
-    DEFAULT_DOCUMENT_STYLE,
-    customCss,
-    '  </style>',
+    headContent,
     '</head>',
     '<body>',
     bodyContent,

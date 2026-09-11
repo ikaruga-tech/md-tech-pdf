@@ -29,11 +29,31 @@ export interface PlantUmlDocumentOptions {
   jarPath?: string;
 }
 
+export interface GoogleFontFamily {
+  name: string;
+  weights?: number[];
+}
+
+export interface GoogleFontsOptions {
+  families: GoogleFontFamily[];
+}
+
+export interface FontOptions {
+  family?: string;
+  codeFamily?: string;
+  google?: GoogleFontsOptions;
+}
+
+export interface StyleDocumentOptions {
+  font?: FontOptions;
+}
+
 export interface DocumentOptions {
   pdf?: PdfDocumentOptions;
   diagram?: DiagramDefaultOptions;
   mermaid?: MermaidDocumentOptions;
   plantuml?: PlantUmlDocumentOptions;
+  style?: StyleDocumentOptions;
 }
 
 /**

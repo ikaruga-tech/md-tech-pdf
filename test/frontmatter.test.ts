@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  convertMarkdownToPdf,
   FrontMatterError,
   HtmlRenderer,
   parseFrontMatter,
   parseMarkdown,
+  PdfGenerator,
   resolveDiagramOptions,
   resolvePdfOptions,
 } from '../src/index.js';
@@ -373,5 +377,97 @@ A -> B
     expect(resolved.margin.left).toBe('30mm'); // from appPdf (app overrides/supplements)
     expect(resolved.margin.right).toBe('15mm'); // default
     expect(resolved.margin.bottom).toBe('15mm'); // default
+  });
+
+  it('resolvePdfOptions resolves all margins when fully specified in document options', () => {
+    const docPdf = {
+      margin: {
+        top: '5mm',
+        right: '5mm',
+        bottom: '5mm',
+        left: '5mm',
+      },
+    };
+    const resolved = resolvePdfOptions(docPdf);
+
+    expect(resolved.margin).toEqual({
+      top: '5mm',
+      right: '5mm',
+      bottom: '5mm',
+      left: '5mm',
+    });
+  });
+
+  it('resolvePdfOptions performs deep merge for partial margin specification', () => {
+    const docPdf = {
+      margin: {
+        left: '5mm',
+      },
+    };
+    const resolved = resolvePdfOptions(docPdf);
+
+    expect(resolved.margin).toEqual({
+      top: '15mm',
+      right: '15mm',
+      bottom: '15mm',
+      left: '5mm',
+    });
+  });
+
+  it('resolvePdfOptions applies default 15mm margins when no front matter pdf options exist', () => {
+    const resolved = resolvePdfOptions(undefined);
+
+    expect(resolved.margin).toEqual({
+      top: '15mm',
+      right: '15mm',
+      bottom: '15mm',
+      left: '15mm',
+    });
+  });
+
+  it('Core API convertMarkdownToPdf passes parsed front matter margin to PdfGenerator', async () => {
+    const tmpDir = path.resolve(process.cwd(), 'test-output-core-margin');
+    await fs.mkdir(tmpDir, { recursive: true });
+    const tmpMd = path.join(tmpDir, 'margin-test.md');
+    const tmpPdf = path.join(tmpDir, 'margin-test.pdf');
+
+    const mdContent = `---
+pdf:
+  format: A4
+  landscape: false
+  margin:
+    top: 5mm
+    right: 5mm
+    bottom: 5mm
+    left: 5mm
+---
+# Margin Test
+
+Content here.`;
+
+    await fs.writeFile(tmpMd, mdContent, 'utf-8');
+
+    const generateSpy = vi
+      .spyOn(PdfGenerator.prototype, 'generate')
+      .mockImplementation(async (_html, outputPath) => {
+        await fs.writeFile(outputPath, '%PDF-dummy');
+      });
+
+    try {
+      await convertMarkdownToPdf(tmpMd, { output: tmpPdf });
+
+      expect(generateSpy).toHaveBeenCalledTimes(1);
+      const passedPdfOptions = generateSpy.mock.calls[0][2];
+      expect(passedPdfOptions).toBeDefined();
+      expect(passedPdfOptions?.margin).toEqual({
+        top: '5mm',
+        right: '5mm',
+        bottom: '5mm',
+        left: '5mm',
+      });
+    } finally {
+      generateSpy.mockRestore();
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
   });
 });

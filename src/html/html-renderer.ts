@@ -85,6 +85,14 @@ export class HtmlRenderer {
         ...parsedDocOptions.plantuml,
         ...options?.documentOptions?.plantuml,
       },
+      style: {
+        ...parsedDocOptions.style,
+        ...options?.documentOptions?.style,
+        font: {
+          ...parsedDocOptions.style?.font,
+          ...options?.documentOptions?.style?.font,
+        },
+      },
     };
 
     // If PlantUML options are configured in Front Matter, create an ad-hoc renderer if default was used
@@ -183,6 +191,9 @@ export class HtmlRenderer {
     const bodyHtml = this.md.renderer.render(tokens, this.md.options, {});
 
     // Wrap in full HTML document
-    return buildCompleteHtml(bodyHtml, options);
+    return buildCompleteHtml(bodyHtml, {
+      ...options,
+      fontOptions: docOptions.style?.font,
+    });
   }
 }

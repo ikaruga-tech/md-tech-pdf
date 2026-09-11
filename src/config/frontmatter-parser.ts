@@ -3,12 +3,16 @@ import type { DiagramAlign, DiagramFit } from '../types/diagram.js';
 import type {
   DiagramDefaultOptions,
   DocumentOptions,
+  FontOptions,
+  GoogleFontFamily,
   MermaidDocumentOptions,
   PdfDocumentOptions,
   PdfMarginOptions,
   PlantUmlDocumentOptions,
+  StyleDocumentOptions,
 } from './document-options.js';
 import { FrontMatterError } from './error.js';
+import { ALLOWED_GOOGLE_FONT_WEIGHTS } from '../html/google-fonts.js';
 
 const VALID_DIMENSION_REGEX = /^(\d+(?:\.\d+)?)(px|mm|cm|in|%)$/;
 const VALID_FITS: readonly DiagramFit[] = ['contain', 'fill'];
@@ -199,6 +203,131 @@ function validatePlantUmlOptions(rawPlantUml: unknown): PlantUmlDocumentOptions 
   return result;
 }
 
+function validateStyleOptions(rawStyle: unknown): StyleDocumentOptions {
+  if (typeof rawStyle !== 'object' || rawStyle === null || Array.isArray(rawStyle)) {
+    throw new FrontMatterError(
+      `Invalid Front Matter setting: style = ${JSON.stringify(rawStyle)}. Expected object.`,
+      { path: 'style' }
+    );
+  }
+  const record = rawStyle as Record<string, unknown>;
+  const result: StyleDocumentOptions = {};
+
+  if (record.font !== undefined) {
+    if (typeof record.font !== 'object' || record.font === null || Array.isArray(record.font)) {
+      throw new FrontMatterError(
+        `Invalid Front Matter setting: style.font = ${JSON.stringify(record.font)}. Expected object.`,
+        { path: 'style.font' }
+      );
+    }
+    const fontRecord = record.font as Record<string, unknown>;
+    const fontResult: FontOptions = {};
+
+    if (fontRecord.family !== undefined) {
+      if (typeof fontRecord.family !== 'string' || fontRecord.family.trim() === '') {
+        throw new FrontMatterError(
+          `Invalid Front Matter setting: style.font.family = ${JSON.stringify(fontRecord.family)}. Expected non-empty string.`,
+          { path: 'style.font.family' }
+        );
+      }
+      fontResult.family = fontRecord.family.trim();
+    }
+
+    if (fontRecord.codeFamily !== undefined) {
+      if (typeof fontRecord.codeFamily !== 'string' || fontRecord.codeFamily.trim() === '') {
+        throw new FrontMatterError(
+          `Invalid Front Matter setting: style.font.codeFamily = ${JSON.stringify(fontRecord.codeFamily)}. Expected non-empty string.`,
+          { path: 'style.font.codeFamily' }
+        );
+      }
+      fontResult.codeFamily = fontRecord.codeFamily.trim();
+    }
+
+    if (fontRecord.google !== undefined) {
+      if (
+        typeof fontRecord.google !== 'object' ||
+        fontRecord.google === null ||
+        Array.isArray(fontRecord.google)
+      ) {
+        throw new FrontMatterError(
+          `Invalid Front Matter setting: style.font.google = ${JSON.stringify(fontRecord.google)}. Expected object.`,
+          { path: 'style.font.google' }
+        );
+      }
+      const googleRecord = fontRecord.google as Record<string, unknown>;
+      if (googleRecord.families !== undefined) {
+        if (!Array.isArray(googleRecord.families)) {
+          throw new FrontMatterError(
+            `Invalid Front Matter setting: style.font.google.families = ${JSON.stringify(googleRecord.families)}. Expected array of font family definitions.`,
+            { path: 'style.font.google.families' }
+          );
+        }
+
+        const familiesResult: GoogleFontFamily[] = [];
+        for (let i = 0; i < googleRecord.families.length; i++) {
+          const item = googleRecord.families[i];
+          const itemPath = `style.font.google.families[${i}]`;
+          if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+            throw new FrontMatterError(
+              `Invalid Front Matter setting: ${itemPath} = ${JSON.stringify(item)}. Expected object.`,
+              { path: itemPath }
+            );
+          }
+          const itemRecord = item as Record<string, unknown>;
+          if (typeof itemRecord.name !== 'string' || itemRecord.name.trim() === '') {
+            throw new FrontMatterError(
+              `Invalid Front Matter setting: ${itemPath}.name = ${JSON.stringify(itemRecord.name)}. Font family name must not be empty.`,
+              { path: `${itemPath}.name` }
+            );
+          }
+          const fontName = itemRecord.name.trim();
+
+          let weights: number[] | undefined;
+          if (itemRecord.weights !== undefined) {
+            if (!Array.isArray(itemRecord.weights)) {
+              throw new FrontMatterError(
+                `Invalid Front Matter setting: ${itemPath}.weights = ${JSON.stringify(itemRecord.weights)}. Expected array of numbers for font family "${fontName}".`,
+                { path: `${itemPath}.weights` }
+              );
+            }
+            weights = [];
+            for (let j = 0; j < itemRecord.weights.length; j++) {
+              const w = itemRecord.weights[j];
+              const weightPath = `${itemPath}.weights[${j}]`;
+              if (
+                typeof w !== 'number' ||
+                !Number.isInteger(w) ||
+                !ALLOWED_GOOGLE_FONT_WEIGHTS.includes(
+                  w as (typeof ALLOWED_GOOGLE_FONT_WEIGHTS)[number]
+                )
+              ) {
+                throw new FrontMatterError(
+                  `Invalid Front Matter setting: ${weightPath}. Invalid weight ${JSON.stringify(w)} for font "${fontName}". Expected one of: ${ALLOWED_GOOGLE_FONT_WEIGHTS.join(', ')}.`,
+                  { path: weightPath }
+                );
+              }
+              weights.push(w);
+            }
+          }
+
+          familiesResult.push({
+            name: fontName,
+            weights,
+          });
+        }
+
+        fontResult.google = {
+          families: familiesResult,
+        };
+      }
+    }
+
+    result.font = fontResult;
+  }
+
+  return result;
+}
+
 const FRONT_MATTER_REGEX = /^---[ \t]*(?:\r?\n([\s\S]*?))?\r?\n---[ \t]*(?:\r?\n|$)/;
 
 export interface ParsedFrontMatter {
@@ -274,6 +403,9 @@ export function parseFrontMatter(source: string): ParsedFrontMatter {
   }
   if (rawRecord.plantuml !== undefined) {
     options.plantuml = validatePlantUmlOptions(rawRecord.plantuml);
+  }
+  if (rawRecord.style !== undefined) {
+    options.style = validateStyleOptions(rawRecord.style);
   }
 
   return {

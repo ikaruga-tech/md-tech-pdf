@@ -3,13 +3,23 @@ pdf:
   format: A4
   landscape: false
   margin:
-    top: 10mm
+    top: 5mm
     right: 5mm
-    bottom: 10mm
+    bottom: 5mm
     left: 5mm
 diagram:
   fit: contain
   align: center
+style:
+  font:
+    family: 'LINE Seed JP'
+    codeFamily: 'Roboto Mono'
+    google:
+      families:
+        - name: 'LINE Seed JP'
+          weights: [400, 500, 700]
+        - name: 'Roboto Mono'
+          weights: [400, 700]
 ---
 
 # システム設計書: クラウド型決済連携・請求集計基盤 (PayFlow Core)

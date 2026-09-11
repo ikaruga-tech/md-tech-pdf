@@ -69,9 +69,59 @@ diagram:
   height: 70mm
   fit: contain
   align: center
+
+style:
+  font:
+    family: 'Noto Sans JP'
+    codeFamily: 'Roboto Mono'
+    google:
+      families:
+        - name: 'Noto Sans JP'
+          weights: [400, 500, 700]
+        - name: 'Roboto Mono'
+          weights: [400, 700]
 ---
 # システム構成書
 ```
+
+### フォント設定 (style.font)
+
+文書の本文フォント（`family`）およびコードブロックフォント（`codeFamily`）を指定できます。
+
+#### 1. ローカルフォントの指定
+
+OSにインストールされているフォントを指定します。外部通信を行わずに高速かつオフラインで利用できます（実行環境に対象フォントがインストールされている必要があります）。
+
+```yaml
+style:
+  font:
+    family: 'Hiragino Sans'
+    codeFamily: 'Menlo'
+```
+
+- 本文フォントのフォールバックとして自動的に `sans-serif` が付与されます。
+- コード用フォント（`code`, `pre`）のフォールバックとして自動的に `monospace` が付与されます。
+
+#### 2. Google Fonts の指定
+
+Google Fonts CSS2 APIを利用してWebフォントを読み込み、本文およびコードフォントとして適用します（生成時に外部ネットワークアクセスが必要です）。
+
+```yaml
+style:
+  font:
+    family: 'Noto Sans JP'
+    codeFamily: 'Roboto Mono'
+    google:
+      families:
+        - name: 'Noto Sans JP'
+          weights: [400, 500, 700]
+        - name: 'Roboto Mono'
+          weights: [400, 700]
+```
+
+- `weights` には `100, 200, 300, 400, 500, 600, 700, 800, 900` の標準weightを指定できます。
+- PDF生成時は `document.fonts.ready` によりWebフォントのロード完了を待機してからレンダリングが行われます。
+- オフライン時や通信障害時はタイムアウト後にフォールバックフォントを用いてPDF生成を継続します。
 
 ### Mermaidダイアグラム
 

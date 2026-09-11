@@ -65,6 +65,27 @@ export class PdfGenerator implements PdfGeneratorInterface {
         waitUntil: 'load',
       });
 
+      // Wait for web fonts (e.g. Google Fonts) to be fully loaded before rendering PDF
+      try {
+        await Promise.race([
+          page.evaluate(async () => {
+            const doc = (
+              globalThis as unknown as {
+                document?: { fonts?: { ready?: Promise<void> } };
+              }
+            ).document;
+            if (doc?.fonts?.ready) {
+              await doc.fonts.ready;
+            }
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Font loading timed out')), 5000)
+          ),
+        ]);
+      } catch {
+        // If web font loading fails or times out, fallback fonts are used
+      }
+
       await page.pdf({
         path: resolvedOutputPath,
         format: mergedOptions.format,

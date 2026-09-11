@@ -145,6 +145,11 @@
    - **対応内容**: `table` に `table-layout: auto;`、セルに `padding: 0.5rem 0.6rem;`（パディング最適化）、`overflow-wrap: anywhere; word-break: normal;` を適用し、`th` に `word-break: keep-all;` を設定。1文字縦並びを解消し、単語まとまりでの折り返しを実現。
    - **ステータス**: Resolved / Mitigated (実務可読性確保)
 
+4. **フォントカスタマイズ（Google Fonts / ローカルフォント）の検証と品質**
+   - **Severity**: Feature Validation
+   - **対応内容**: Front Matter の `style.font` による Noto Sans JP（本文）および Roboto Mono（コード）のGoogle Fonts適用、ならびに Hiragino Sans / Menlo のローカルフォント適用を検証。`document.fonts.ready` 待機によりWebフォントの描画完了後にPDF化され、文字欠落やかすれ、文字化け等のない極めて鮮明で高品質なベクターPDF出力を確認。
+   - **ステータス**: Resolved (A評価)
+
 ### 将来検討課題 (Retained as Low Severity)
 
 1. **改ページをまたぐ表でのヘッダー再描画 (`thead`)**

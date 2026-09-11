@@ -14,6 +14,7 @@ export * from './renderer/plantuml-renderer.js';
 export * from './renderer/plantuml-executor.js';
 export * from './renderer/error.js';
 export * from './html/default-style.js';
+export * from './html/google-fonts.js';
 export * from './html/html-builder.js';
 export * from './html/html-renderer.js';
 export * from './pdf/types.js';

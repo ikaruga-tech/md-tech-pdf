@@ -26,7 +26,7 @@ html {
 
 body {
   margin: 0;
-  padding: 2.5rem 3rem;
+  padding: 0;
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
