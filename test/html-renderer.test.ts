@@ -216,4 +216,27 @@ flowchart TD
     expect(html).toContain('処理の開始');
     expect(html).toContain('処理の完了');
   });
+
+  it('Integration: should render PlantUML blocks into styled SVG containers alongside Mermaid', async () => {
+    const markdown = `
+# 統合テスト
+
+\`\`\`plantuml {width=130mm height=60mm align=center}
+@startuml
+Client -> Server: API Request
+Server --> Client: API Response
+@enduml
+\`\`\`
+`;
+    const html = await renderer.render(markdown);
+
+    expect(html).toContain('<h1>統合テスト</h1>');
+    expect(html).toContain(
+      'class="md-tech-diagram md-tech-diagram-align-center md-tech-diagram-fit-contain"'
+    );
+    expect(html).toContain('style="width: 130mm; height: 60mm;"');
+    expect(html).toContain('<svg');
+    expect(html).toContain('Client');
+    expect(html).toContain('Server');
+  });
 });

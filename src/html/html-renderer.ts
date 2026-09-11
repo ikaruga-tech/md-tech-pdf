@@ -1,6 +1,8 @@
 import MarkdownIt from 'markdown-it';
 import { parseAttributes } from '../parser/attributes-parser.js';
+import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
+import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
 import { buildCompleteHtml, buildDiagramContainer } from './html-builder.js';
 
@@ -9,16 +11,42 @@ export interface HtmlRenderOptions {
   customCss?: string;
 }
 
+export interface HtmlRendererConfig {
+  mermaidRenderer?: DiagramRenderer;
+  plantumlRenderer?: DiagramRenderer;
+}
+
 /**
  * Converts Markdown technical documents into complete HTML documents,
- * rendering Mermaid diagram blocks into styled SVG containers.
+ * rendering Mermaid and PlantUML diagram blocks into styled SVG containers.
  */
 export class HtmlRenderer {
-  private readonly mermaidRenderer: MermaidRenderer;
+  private readonly renderers: Map<DiagramType, DiagramRenderer>;
   private readonly md: InstanceType<typeof MarkdownIt>;
 
-  constructor(mermaidRenderer?: MermaidRenderer) {
-    this.mermaidRenderer = mermaidRenderer ?? new MermaidRenderer();
+  constructor(
+    mermaidRendererOrConfig?: DiagramRenderer | HtmlRendererConfig,
+    plantumlRenderer?: DiagramRenderer
+  ) {
+    this.renderers = new Map();
+
+    if (mermaidRendererOrConfig && 'render' in mermaidRendererOrConfig) {
+      this.renderers.set('mermaid', mermaidRendererOrConfig);
+      this.renderers.set('plantuml', plantumlRenderer ?? new PlantUmlRenderer());
+    } else if (mermaidRendererOrConfig && typeof mermaidRendererOrConfig === 'object') {
+      this.renderers.set(
+        'mermaid',
+        mermaidRendererOrConfig.mermaidRenderer ?? new MermaidRenderer()
+      );
+      this.renderers.set(
+        'plantuml',
+        mermaidRendererOrConfig.plantumlRenderer ?? new PlantUmlRenderer()
+      );
+    } else {
+      this.renderers.set('mermaid', new MermaidRenderer());
+      this.renderers.set('plantuml', plantumlRenderer ?? new PlantUmlRenderer());
+    }
+
     this.md = new MarkdownIt({
       html: true,
       linkify: true,
@@ -32,7 +60,7 @@ export class HtmlRenderer {
   async render(markdown: string, options?: HtmlRenderOptions): Promise<string> {
     const tokens = this.md.parse(markdown, {});
 
-    // Collect all Mermaid fence tokens to render asynchronously
+    // Collect all diagram fence tokens (mermaid, plantuml) to render asynchronously
     const pendingRenders: Array<{
       index: number;
       block: DiagramBlock;
@@ -55,7 +83,7 @@ export class HtmlRenderer {
       }
 
       const lang = match[1].toLowerCase() as DiagramType;
-      if (lang !== 'mermaid') {
+      if (lang !== 'mermaid' && lang !== 'plantuml') {
         continue;
       }
 
@@ -75,7 +103,7 @@ export class HtmlRenderer {
       pendingRenders.push({
         index: i,
         block: {
-          type: 'mermaid',
+          type: lang,
           source: cleanSource,
           options: diagramOptions,
           line,
@@ -83,9 +111,14 @@ export class HtmlRenderer {
       });
     }
 
-    // Render all Mermaid diagrams
+    // Render all diagrams asynchronously
     for (const item of pendingRenders) {
-      const svg = await this.mermaidRenderer.render(item.block.source);
+      const renderer = this.renderers.get(item.block.type);
+      if (!renderer) {
+        continue;
+      }
+
+      const svg = await renderer.render(item.block.source);
       const containerHtml = buildDiagramContainer(svg, item.block.options);
 
       const targetToken = tokens[item.index];

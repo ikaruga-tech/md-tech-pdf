@@ -19,7 +19,8 @@
     "test": "vitest run",
     "dev:mermaid": "tsx tools/test-mermaid.ts",
     "dev:html": "tsx tools/test-html.ts",
-    "dev:pdf": "tsx tools/test-pdf.ts"
+    "dev:pdf": "tsx tools/test-pdf.ts",
+    "dev:plantuml": "tsx tools/test-plantuml.ts"
   },
   "keywords": [
     "markdown",

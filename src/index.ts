@@ -10,6 +10,8 @@ export * from './parser/markdown-parser.js';
 export * from './renderer/diagram-renderer.js';
 export * from './renderer/mermaid-renderer.js';
 export * from './renderer/mermaid-executor.js';
+export * from './renderer/plantuml-renderer.js';
+export * from './renderer/plantuml-executor.js';
 export * from './renderer/error.js';
 export * from './html/default-style.js';
 export * from './html/html-builder.js';
