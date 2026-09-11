@@ -1,6 +1,6 @@
 {
   "name": "md-tech-pdf",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "Technical document PDF generator from Markdown with flexible diagram layout",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,6 +15,14 @@
   ],
   "engines": {
     "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ikaruga-tech/md-tech-pdf.git"
+  },
+  "homepage": "https://github.com/ikaruga-tech/md-tech-pdf#readme",
+  "bugs": {
+    "url": "https://github.com/ikaruga-tech/md-tech-pdf/issues"
   },
   "scripts": {
     "build": "tsc && chmod +x dist/cli/index.js",
