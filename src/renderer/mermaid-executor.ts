@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { DiagramRenderError } from './error.js';
@@ -15,20 +16,33 @@ export function resolveMmdcPath(): { command: string; argsPrefix: string[] } {
   const require = createRequire(import.meta.url);
 
   try {
-    const pkgJsonPath = require.resolve('@mermaid-js/mermaid-cli/package.json');
-    const pkgDir = path.dirname(pkgJsonPath);
-    const cliScriptPath = path.join(pkgDir, 'src', 'cli.js');
-    return {
-      command: process.execPath,
-      argsPrefix: [cliScriptPath],
-    };
+    const entryPath = require.resolve('@mermaid-js/mermaid-cli');
+    const pkgDir = path.dirname(entryPath);
+    const cliScriptPath = path.join(pkgDir, 'cli.js');
+    if (fs.existsSync(cliScriptPath)) {
+      return {
+        command: process.execPath,
+        argsPrefix: [cliScriptPath],
+      };
+    }
   } catch {
-    // Fallback to globally/locally installed binary name in PATH
+    // Continue to fallback
+  }
+
+  // Check local node_modules/.bin/mmdc
+  const localBin = path.resolve(process.cwd(), 'node_modules/.bin/mmdc');
+  if (fs.existsSync(localBin)) {
     return {
-      command: 'mmdc',
+      command: localBin,
       argsPrefix: [],
     };
   }
+
+  // Fallback to globally/locally installed binary name in PATH
+  return {
+    command: 'mmdc',
+    argsPrefix: [],
+  };
 }
 
 /**

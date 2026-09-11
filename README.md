@@ -8,6 +8,103 @@ Markdownで作成した技術文書を、高品質なPDFへ変換するオープ
 
 ---
 
+## CLIの使い方
+
+### 基本コマンド
+
+Markdownファイルを指定してPDFへ変換します。
+
+```bash
+# 入力ファイルと同じディレクトリに document.pdf を生成
+md-tech-pdf document.md
+```
+
+### 出力先パスの指定
+
+`-o` または `--output` オプションで出力先PDFのファイルパスを指定できます。
+
+```bash
+md-tech-pdf document.md -o output.pdf
+```
+
+出力先ディレクトリが存在しない場合は、自動的に作成されます。
+
+```bash
+md-tech-pdf docs/architecture.md -o build/architecture.pdf
+```
+
+### ヘルプ・バージョン表示
+
+```bash
+# ヘルプの表示
+md-tech-pdf --help
+md-tech-pdf -h
+
+# バージョンの表示
+md-tech-pdf --version
+md-tech-pdf -v
+```
+
+---
+
+## ドキュメント設定とダイアグラム記述例
+
+### YAML Front Matter設定
+
+Markdownファイルの先頭にFront Matterを記述することで、文書全体のPDF余白や図の規定サイズを設定できます。
+
+```yaml
+---
+pdf:
+  format: A4
+  landscape: false
+  margin:
+    top: 20mm
+    right: 20mm
+    bottom: 20mm
+    left: 20mm
+
+diagram:
+  width: 120mm
+  height: 70mm
+  fit: contain
+  align: center
+---
+# システム構成書
+```
+
+### Mermaidダイアグラム
+
+フェンスブロックで `mermaid` を指定します。波括弧 `{}` で個別属性を指定でき、Front Matterの設定を上書き可能です。
+
+````markdown
+```mermaid {width=140mm align=center}
+graph TD
+  Client[クライアント] --> API[APIサーバー]
+  API --> DB[(データベース)]
+```
+````
+
+````
+
+### PlantUMLダイアグラム
+
+フェンスブロックで `plantuml` を指定します。
+
+```markdown
+```plantuml {width=100mm align=center}
+@startuml
+actor User
+participant Server
+User -> Server: リクエスト送信
+Server --> User: レスポンス返却
+@enduml
+````
+
+```
+
+---
+
 ## アーキテクチャ概要
 
 本プロジェクトは関心事の分離を重視し、UI層（CLI、将来のエディタ拡張）とコアエンジン層を明確に分離しています。
@@ -15,22 +112,24 @@ Markdownで作成した技術文書を、高品質なPDFへ変換するオープ
 ### レイヤー構造
 
 ```
+
 +---------------------------------------+
-|              Client Layer             |
-|   +----------------+  +-------------+ |
-|   |  CLI           |  | VSCode Ext  | |
-|   |  (src/cli)     |  | (Future)    | |
-|   +-------+--------+  +------+------+ |
+| Client Layer |
+| +----------------+ +-------------+ |
+| | CLI | | VSCode Ext | |
+| | (src/cli) | | (Future) | |
+| +-------+--------+ +------+------+ |
 +-----------|------------------|--------+
-            | (thin wrapper)   |
-            v                  v
+| (thin wrapper) |
+v v
 +---------------------------------------+
-|               Core Layer              |
-|              (src/index.ts)           |
-|  - Markdown Parser                    |
-|  - Diagram Engine (Mermaid/PlantUML)  |
-|  - Layout Engine & PDF Generator      |
+| Core Layer |
+| (src/index.ts) |
+| - Markdown Parser |
+| - Diagram Engine (Mermaid/PlantUML) |
+| - Layout Engine & PDF Generator |
 +---------------------------------------+
+
 ```
 
 - **CLI (`src/cli/index.ts`)**: コマンドライン引数のパースとCore APIの呼び出しのみを担当します。PDF生成ロジックは記述しません。
@@ -39,25 +138,27 @@ Markdownで作成した技術文書を、高品質なPDFへ変換するオープ
 ### ディレクトリ構成
 
 ```
+
 md-tech-pdf/
-├── .github/              # GitHub Actionsワークフローおよびテンプレート
-├── docs/                 # 設計資料・ドキュメント
-├── examples/             # サンプルMarkdown文書・設定例
-├── generated/            # 生成時の一時ファイル・出力先（.gitignore対象）
-│   ├── cache/            # ダイアグラム等のキャッシュ
-│   ├── diagrams/         # 生成された画像（SVG/PNG）
-│   ├── html/             # 中間HTMLファイル
-│   ├── pdf/              # 最終PDF出力
-│   └── temp/             # その他作業用一時ファイル
-├── src/                  # ソースコード
-│   ├── cli/              # CLIエントリーポイント
-│   └── index.ts          # Coreライブラリ エントリーポイント
-├── test/                 # テストコード
-├── eslint.config.js      # ESLint設定 (Flat config)
-├── package.json          # プロジェクト定義・依存関係
-├── tsconfig.json         # TypeScriptコンパイラ設定
-└── vitest.config.ts      # Vitestテストフレームワーク設定
-```
+├── .github/ # GitHub Actionsワークフローおよびテンプレート
+├── docs/ # 設計資料・ドキュメント
+├── examples/ # サンプルMarkdown文書・設定例
+├── generated/ # 生成時の一時ファイル・出力先（.gitignore対象）
+│ ├── cache/ # ダイアグラム等のキャッシュ
+│ ├── diagrams/ # 生成された画像（SVG/PNG）
+│ ├── html/ # 中間HTMLファイル
+│ ├── pdf/ # 最終PDF出力
+│ └── temp/ # その他作業用一時ファイル
+├── src/ # ソースコード
+│ ├── cli/ # CLIエントリーポイント
+│ └── index.ts # Coreライブラリ エントリーポイント
+├── test/ # テストコード
+├── eslint.config.js # ESLint設定 (Flat config)
+├── package.json # プロジェクト定義・依存関係
+├── tsconfig.json # TypeScriptコンパイラ設定
+└── vitest.config.ts # Vitestテストフレームワーク設定
+
+````
 
 ---
 
@@ -73,7 +174,7 @@ md-tech-pdf/
 ```bash
 # 依存関係のインストール
 pnpm install
-```
+````
 
 ### スクリプト一覧
 

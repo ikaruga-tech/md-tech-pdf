@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "dev:cli": "tsx src/cli/index.ts",
     "dev:mermaid": "tsx tools/test-mermaid.ts",
     "dev:html": "tsx tools/test-html.ts",
     "dev:pdf": "tsx tools/test-pdf.ts",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.17.0",
+    "commander": "^15.0.0",
     "markdown-it": "^15.0.1",
     "playwright": "^1.63.0",
     "yaml": "^2.9.0"

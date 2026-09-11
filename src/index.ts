@@ -24,6 +24,7 @@ export * from './config/document-options.js';
 export * from './config/error.js';
 export * from './config/frontmatter-parser.js';
 export * from './config/config-resolver.js';
+export * from './core/converter.js';
 
 export interface GeneratorOptions {
   inputPath?: string;
