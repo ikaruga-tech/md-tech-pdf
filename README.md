@@ -1,38 +1,52 @@
 # md-tech-pdf
 
-Markdownで作成した技術文書を、高品質なPDFへ変換するオープンソースツールです。
+English | [日本語](./README.ja.md)
 
-一般的なMarkdown PDF変換ツールとの差別化として、MermaidやPlantUMLなどのダイアグラム・図表をPDF向けに美しく、かつ柔軟にレイアウト・配置できることを目指しています。
+An open-source technical document PDF generator from Markdown with flexible, print-oriented diagram layout and vector typography.
 
-将来的にはVSCode Extensionとしての提供も予定していますが、PDF生成コアロジックはCLIや特定のエディタ環境に依存しない独立した「Coreライブラリ」として設計されています。
+Unlike conventional Markdown-to-PDF converters that treat diagrams as fixed raster images or apply crude page scaling, **md-tech-pdf** renders Mermaid and PlantUML diagrams as crisp vector SVGs with independent width and height control, custom aspect ratio fitting (`fit=contain` / `fill`), and alignment (`left` / `center` / `right`).
 
----
-
-## 主な特徴
-
-- **Markdown → 高品質ベクターPDF**: Playwright Chromiumベースの高精度なレンダリングエンジン。
-- **Mermaid & PlantUML 対応**: フローチャート、シーケンス図、クラス図などを鮮明なベクターSVGとして埋め込み。
-- **柔軟なダイアグラム配置**: `width`, `height`, `fit` (contain / fill), `align` (left / center / right) による精密なサイズ・位置制御。
-- **YAML Front Matter**: 用紙サイズ（A4）、向き（縦/横）、余白（margin）、フォント等をドキュメント単位で一括定義。
-- **フォントカスタマイズ**: OSインストール済みのローカルフォントおよび Google Fonts のWebフォントを個別指定可能。
-- **印刷品質のレイアウト制御**: 見出しの孤立抑止（Orphan Heading対策）、超長行コードブロックの自動折り返し、多列テーブルの可読性最適化。
-- **使いやすいCLI**: 出力先指定、自動ディレクトリ作成、ヘルプ・バージョン表示をサポート。
+While future editor integrations (such as a VS Code extension) are planned, the core PDF generation engine is architected as an independent, decoupled library suitable for automated documentation pipelines and CLI workflows.
 
 ---
 
-## インストール
+## Features
 
-グローバルインストールしてCLIコマンドとして利用できます。
+- **Markdown to High-Quality Vector PDF**: Precise rendering engine built on headless Playwright Chromium.
+- **Mermaid & PlantUML Support**: Inline vector SVG rendering for flowcharts, sequence diagrams, architecture maps, and class diagrams.
+- **Independent Diagram Sizing**: Precise control over diagram `width` and `height` using real-world physical units (`mm`, `cm`, `in`) or digital units (`px`, `pt`, `%`).
+- **Flexible Aspect Ratio & Alignment**: Choose between `fit=contain` (maintain aspect ratio) and `fit=fill`, aligned to `left`, `center`, or `right`.
+- **YAML Front Matter**: Configure page format (A4), orientation (portrait/landscape), margins, fonts, and default diagram settings per document.
+- **Font Customization**:
+  - Local OS font support for body text (`family`) and code blocks (`codeFamily`).
+  - Google Fonts integration via the CSS2 API with automatic loading completion detection.
+- **Print-Ready Layout Optimizations**: Orphan heading prevention (`break-inside: avoid`), automated wrapping for long code lines, and multi-column table styling.
+- **Developer-Friendly CLI**: Simple command-line interface with custom output paths, automatic directory creation, and versioning.
+
+---
+
+## Requirements
+
+- **Node.js**: `>= 20.0.0`
+- **Playwright / Chromium**: Required for PDF rendering (installed automatically with project dependencies).
+- **Java Runtime & PlantUML JAR**: Required **only** if you render PlantUML diagrams. If you only use Mermaid diagrams, Java is **not** required.
+- **Internet Connection**: Required **only** if downloading Google Fonts at compilation time (automatically falls back to system fonts when offline).
+
+---
+
+## Installation
+
+Install globally via npm or pnpm to use the CLI command:
 
 ```bash
-# npm を使用する場合
+# Using npm
 npm install -g md-tech-pdf
 
-# pnpm を使用する場合
+# Using pnpm
 pnpm add -g md-tech-pdf
 ```
 
-また、インストールせずに `npx` で即座に実行することも可能です。
+Alternatively, run directly without global installation using `npx`:
 
 ```bash
 npx md-tech-pdf document.md -o output.pdf
@@ -40,50 +54,47 @@ npx md-tech-pdf document.md -o output.pdf
 
 ---
 
-## CLIの使い方
+## Quick Start & CLI Usage
 
-### 基本コマンド
+### Basic Conversion
 
-Markdownファイルを指定してPDFへ変換します。
+Convert a Markdown file to PDF. When omitted, the output file will be created in the same directory as the source Markdown file:
 
 ```bash
-# 入力ファイルと同じディレクトリに document.pdf を生成
+# Generates document.pdf in the current directory
 md-tech-pdf document.md
 ```
 
-### 出力先パスの指定
+### Specifying Output Path
 
-`-o` または `--output` オプションで出力先PDFのファイルパスを指定できます。
+Use `-o` or `--output` to define the destination file path. Non-existent directories are created automatically:
 
 ```bash
 md-tech-pdf document.md -o output.pdf
-```
 
-出力先ディレクトリが存在しない場合は、自動的に作成されます。
-
-```bash
+# Auto-creates the build/ directory if missing
 md-tech-pdf docs/architecture.md -o build/architecture.pdf
 ```
 
-### ヘルプ・バージョン表示
+### Help and Version
 
 ```bash
-# ヘルプの表示
+# Show command-line help
 md-tech-pdf --help
 md-tech-pdf -h
 
-# バージョンの表示
+# Show version number
 md-tech-pdf --version
 md-tech-pdf -v
 ```
 
 ---
 
-## ドキュメント設定とダイアグラム記述例
+## Document Configuration & Diagrams
 
-### YAML Front Matter設定
+### YAML Front Matter
 
-Markdownファイルの先頭にFront Matterを記述することで、文書全体のPDF余白や図の規定サイズを設定できます。
+Place Front Matter at the top of your Markdown document to customize PDF page margins, default diagram sizing, and typography:
 
 ```yaml
 ---
@@ -113,16 +124,61 @@ style:
         - name: 'Roboto Mono'
           weights: [400, 700]
 ---
-# システム構成書
+# System Architecture Specification
 ```
 
-### フォント設定 (style.font)
+### Diagram Layout Options
 
-文書の本文フォント（`family`）およびコードブロックフォント（`codeFamily`）を指定できます。
+You can customize individual diagram blocks using curly brace attributes `{...}` following the code block language identifier:
 
-#### 1. ローカルフォントの指定
+- `width`: Target width (supported units: `mm`, `cm`, `in`, `px`, `pt`, `%`).
+- `height`: Target height (supported units: `mm`, `cm`, `in`, `px`, `pt`, `%`).
+- `fit`: Scaling behavior (`contain` to preserve aspect ratio, or `fill` to stretch).
+- `align`: Horizontal position (`left`, `center`, or `right`).
 
-OSにインストールされているフォントを指定します。外部通信を行わずに高速かつオフラインで利用できます（実行環境に対象フォントがインストールされている必要があります）。
+### Mermaid Diagrams
+
+Specify `mermaid` as the code fence identifier. Diagrams are rendered as scalable vector SVGs directly embedded in the HTML:
+
+````markdown
+```mermaid {width=140mm align=center}
+graph TD
+  Client[Client] --> API[API Gateway]
+  API --> DB[(Database)]
+```
+````
+
+### PlantUML Diagrams
+
+Specify `plantuml` as the code fence identifier. Rendering is executed locally via your system's Java runtime, ensuring confidential architecture designs are **never** transmitted to third-party PlantUML cloud servers:
+
+````markdown
+```plantuml {width=100mm align=center}
+@startuml
+actor User
+participant Server
+User -> Server: Request
+Server --> User: Response
+@enduml
+```
+````
+
+> **Note on PlantUML Prerequisites**:
+> PlantUML requires a **Java runtime** and a local **PlantUML .jar file**. If necessary, specify custom paths in Front Matter:
+>
+> ```yaml
+> plantuml:
+>   javaPath: '/usr/bin/java'
+>   jarPath: '/path/to/plantuml.jar'
+> ```
+
+### Font Configuration (style.font)
+
+Configure document body text (`family`) and code block typography (`codeFamily`).
+
+#### 1. Local OS Fonts
+
+Use system fonts installed on the host machine. Fast, lightweight, and offline-compatible:
 
 ```yaml
 style:
@@ -131,12 +187,12 @@ style:
     codeFamily: 'Menlo'
 ```
 
-- 本文フォントのフォールバックとして自動的に `sans-serif` が付与されます。
-- コード用フォント（`code`, `pre`）のフォールバックとして自動的に `monospace` が付与されます。
+- Standard `sans-serif` is automatically appended to body text as a fallback.
+- Standard `monospace` is automatically appended to code blocks (`code`, `pre`) as a fallback.
 
-#### 2. Google Fonts の指定
+#### 2. Google Fonts
 
-Google Fonts CSS2 APIを利用してWebフォントを読み込み、本文およびコードフォントとして適用します（生成時に外部ネットワークアクセスが必要です）。
+Download web fonts dynamically at build time using the Google Fonts CSS2 API:
 
 ```yaml
 style:
@@ -151,176 +207,109 @@ style:
           weights: [400, 700]
 ```
 
-- `weights` には `100, 200, 300, 400, 500, 600, 700, 800, 900` の標準weightを指定できます。
-- PDF生成時は `document.fonts.ready` によりWebフォントのロード完了を待機してからレンダリングが行われます。
-- オフライン時や通信障害時はタイムアウト後にフォールバックフォントを用いてPDF生成を継続します。
-
-### Mermaidダイアグラム
-
-フェンスブロックで `mermaid` を指定します。波括弧 `{}` で個別属性を指定でき、Front Matterの設定を上書き可能です。
-
-````markdown
-```mermaid {width=140mm align=center}
-graph TD
-  Client[クライアント] --> API[APIサーバー]
-  API --> DB[(データベース)]
-```
-````
-
-### PlantUMLダイアグラム
-
-フェンスブロックで `plantuml` を指定します。
-
-````markdown
-```plantuml {width=100mm align=center}
-@startuml
-actor User
-participant Server
-User -> Server: リクエスト送信
-Server --> User: レスポンス返却
-@enduml
-```
-````
-
-> **注意 (PlantUMLの前提要件)**:
-> PlantUMLの描画には、ローカル環境に **Javaランタイム** および **PlantUMLのjarファイル** がインストールされている必要があります（Mermaidのみを使用する場合はJavaは不要です）。
-> 必要に応じて、Front Matterでjavaおよびjarのパスを明示指定できます。
->
-> ```yaml
-> plantuml:
->   javaPath: '/usr/bin/java'
->   jarPath: '/path/to/plantuml.jar'
-> ```
+- Supported weights: `100, 200, 300, 400, 500, 600, 700, 800, 900`.
+- The generator waits for `document.fonts.ready` before rendering PDF pages.
+- If offline or on network failure, rendering gracefully falls back to system fonts.
 
 ---
 
-## アーキテクチャ概要
+## Examples
 
-本プロジェクトは関心事の分離を重視し、UI層（CLI、将来のエディタ拡張）とコアエンジン層を明確に分離しています。
+Explore sample Markdown documents and configuration patterns in the [examples/](./examples/) directory:
 
-### レイヤー構造
-
-```
-
-+---------------------------------------+
-| Client Layer |
-| +----------------+ +-------------+ |
-| | CLI | | VSCode Ext | |
-| | (src/cli) | | (Future) | |
-| +-------+--------+ +------+------+ |
-+-----------|------------------|--------+
-| (thin wrapper) |
-v v
-+---------------------------------------+
-| Core Layer |
-| (src/index.ts) |
-| - Markdown Parser |
-| - Diagram Engine (Mermaid/PlantUML) |
-| - Layout Engine & PDF Generator |
-+---------------------------------------+
-
-```
-
-- **CLI (`src/cli/index.ts`)**: コマンドライン引数のパースとCore APIの呼び出しのみを担当します。PDF生成ロジックは記述しません。
-- **Core (`src/index.ts`)**: ドキュメント解析、図のレンダリング、レイアウト調整、PDF出力など、すべての生成ロジックを集約する独立ライブラリです。
-
-### ディレクトリ構成
-
-```
-
-md-tech-pdf/
-├── .github/ # GitHub Actionsワークフローおよびテンプレート
-├── docs/ # 設計資料・ドキュメント
-├── examples/ # サンプルMarkdown文書・設定例
-├── generated/ # 生成時の一時ファイル・出力先（.gitignore対象）
-│ ├── cache/ # ダイアグラム等のキャッシュ
-│ ├── diagrams/ # 生成された画像（SVG/PNG）
-│ ├── html/ # 中間HTMLファイル
-│ ├── pdf/ # 最終PDF出力
-│ └── temp/ # その他作業用一時ファイル
-├── src/ # ソースコード
-│ ├── cli/ # CLIエントリーポイント
-│ └── index.ts # Coreライブラリ エントリーポイント
-├── test/ # テストコード
-├── eslint.config.js # ESLint設定 (Flat config)
-├── package.json # プロジェクト定義・依存関係
-├── tsconfig.json # TypeScriptコンパイラ設定
-└── vitest.config.ts # Vitestテストフレームワーク設定
-
-```
+- [examples/real-world/system-design.md](./examples/real-world/system-design.md): A comprehensive system design document with Mermaid, PlantUML, custom fonts, and multi-column tables.
+- [examples/frontmatter-test.md](./examples/frontmatter-test.md): Document-level margin and layout settings.
+- [examples/mermaid-test.md](./examples/mermaid-test.md): Various Mermaid chart types and sizing attributes.
+- [examples/plantuml-test.md](./examples/plantuml-test.md): PlantUML sequence and component diagrams.
 
 ---
 
-## 開発方法
+## Architecture Overview
 
-### 前提環境
+**md-tech-pdf** enforces a strict separation of concerns between client interfaces (CLI, future extensions) and the core conversion engine.
 
-- Node.js >= 24.0.0 (LTS: Krypton)
-- pnpm >= 9.0.0
+```text
++---------------------------------------+
+|             Client Layer              |
+|  +----------------+ +---------------+ |
+|  |      CLI       | |  VSCode Ext   | |
+|  |  (src/cli)     | |   (Future)    | |
+|  +-------+--------+ +-------+-------+ |
++----------|------------------|---------+
+           | (thin wrapper)   |
+           v                  v
++---------------------------------------+
+|              Core Layer               |
+|            (src/index.ts)             |
+|  - Markdown Parser                    |
+|  - Diagram Engine (Mermaid/PlantUML)  |
+|  - Layout Engine & PDF Generator      |
++---------------------------------------+
+```
 
-### セットアップ
+- **CLI (`src/cli/index.ts`)**: Thin command-line wrapper handling argument parsing and calling the Core API.
+- **Core (`src/index.ts`)**: Standalone library handling document parsing, diagram execution, layout generation, and Playwright PDF printing.
+
+---
+
+## Development
+
+### Prerequisites
+
+- Node.js `>= 20.0.0`
+- pnpm `>= 9.0.0`
+
+### Setup
 
 ```bash
-# 依存関係のインストール
+# Install dependencies
 pnpm install
 ```
 
-### スクリプト一覧
+### Scripts
 
 ```bash
-# TypeScriptのビルド (dist/ へ出力)
+# Compile TypeScript to dist/
 pnpm build
 
-# Vitestによるユニットテストの実行
+# Run unit and integration tests with Vitest
 pnpm test
 
-# ESLintによる静的解析
+# Run ESLint static analysis
 pnpm lint
 
-# Prettierによるコードフォーマットチェック
+# Check code formatting with Prettier
 pnpm format:check
 
-# Prettierによるコード整形
+# Format codebase with Prettier
 pnpm format
 ```
 
 ---
 
-## 今後のロードマップ
+## Known Limitations
 
-1. **フェーズ1: プロジェクト基盤の構築（完了）**
-   - TypeScript, pnpm, ESLint, Prettier, Vitest による開発環境の構築
-   - Core / CLI の分離アーキテクチャ定義
+Current known limitations in the v0.1.0 release:
 
-2. **フェーズ2: ドキュメント解析・中間HTML変換エンジンの実装**
-   - Markdown解析および構文木（AST）処理
-   - Front Matter解析とドキュメントメタデータ管理
-   - テーマ・スタイルシート（CSS）適用機能
-
-3. **フェーズ3: ダイアグラム連携とPDFレイアウト最適化**
-   - Mermaid・PlantUMLコードブロックの抽出と画像生成
-   - ページ分割（ページネーション）を意識した図表配置・サイズ自動調整
-   - 図表のキャッシュ機構（`generated/cache/`）
-
-4. **フェーズ4: Playwrightによる高品質PDF生成**
-   - ヘッドレスブラウザを活用した高精度CSS Paged Mediaレンダリング
-   - 目次、ヘッダー・フッター、ページ番号の動的生成
-
-5. **フェーズ5: CLI機能の拡充**
-   - 設定ファイル（JSON/YAML）対応
-   - ファイル変更監視（Watchモード）とプレビュー機能
-
-6. **フェーズ6: VSCode Extensionの開発**
-   - リアルタイムプレビュー機能
-   - ワンクリックPDFエクスポート
+1. **Table Header Pagination (`<thead>`)**: Table headers do not repeat at the top of subsequent pages when a large table breaks across page boundaries.
+2. **Pre-Diagram Whitespace for Tall Diagrams**: Very tall diagrams (>150mm) are moved to the next page to avoid cross-page diagram clipping (`break-inside: avoid`), which may leave whitespace at the bottom of the preceding page.
+3. **PlantUML System Dependencies**: Rendering PlantUML requires a local Java runtime and PlantUML JAR file (Mermaid has no Java dependencies).
+4. **Google Fonts Network Dependency**: Downloading Google Fonts requires an active internet connection at compilation time (falls back to local system fonts if unavailable).
 
 ---
 
-## 既知の制約事項 (Known Limitations)
+## Changelog
 
-v0.1.0 リリース時点で把握されている仕様および制約事項です。
+Detailed release notes and version history are documented in [CHANGELOG.md](./CHANGELOG.md).
 
-1. **ページまたぎテーブルでのヘッダー再描画 (`thead`)**: 行数の多い表が改ページされる際、2ページ目以降の先頭にテーブルヘッダーは自動再描画されません（実用上のデータ読解は可能です）。
-2. **縦長ダイアグラム直前の余白**: 高さが150mmを超える縦長ダイアグラムは、途中で切断されるのを防ぐ安全策（`break-inside: avoid`）により次ページに送られるため、前ページ下部に空白が生じる場合があります。
-3. **PlantUMLの前提環境**: PlantUMLの描画にはローカルのJavaランタイムおよびPlantUML jarが必要です（Mermaidのみ使用する場合は不要です）。
-4. **Google Fontsのネットワーク要件**: Google Fontsの読み込みにはPDF生成時にインターネット接続が必要です（オフライン時や障害時はシステムフォントへ自動フォールバックします）。
+---
+
+## Contributing
+
+Contributions, issues, and feature requests are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and contribution guidelines. By participating, you agree to abide by our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+---
+
+## License
+
+This project is licensed under the [Apache License 2.0](./LICENSE).
