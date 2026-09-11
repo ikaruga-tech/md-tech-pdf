@@ -173,11 +173,14 @@ Content with customized margins.
     });
 
     it('11. should display version with -v or --version and exit with code 0', async () => {
+      const pkg = JSON.parse(
+        await fs.readFile(path.resolve(process.cwd(), 'package.json'), 'utf-8')
+      );
       const { stdout: stdoutShort } = await execFileAsync(TSX_BIN, [CLI_PATH, '-v']);
-      expect(stdoutShort.trim()).toBe('0.1.0');
+      expect(stdoutShort.trim()).toBe(pkg.version);
 
       const { stdout: stdoutLong } = await execFileAsync(TSX_BIN, [CLI_PATH, '--version']);
-      expect(stdoutLong.trim()).toBe('0.1.0');
+      expect(stdoutLong.trim()).toBe(pkg.version);
     });
 
     it('9. should exit with code 1 when no input file is specified', async () => {

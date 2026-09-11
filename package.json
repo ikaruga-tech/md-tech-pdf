@@ -1,15 +1,20 @@
 {
   "name": "md-tech-pdf",
-  "version": "0.1.0",
+  "version": "0.1.0-rc.1",
   "description": "Technical document PDF generator from Markdown with flexible diagram layout",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "md-tech-pdf": "./dist/cli/index.js"
+    "md-tech-pdf": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc && chmod +x dist/cli/index.js",
@@ -29,10 +34,11 @@
     "technical-writing",
     "diagrams",
     "mermaid",
-    "plantuml"
+    "plantuml",
+    "cli"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/markdown-it": "^14.2.0",

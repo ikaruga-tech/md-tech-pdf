@@ -8,6 +8,38 @@ Markdownで作成した技術文書を、高品質なPDFへ変換するオープ
 
 ---
 
+## 主な特徴
+
+- **Markdown → 高品質ベクターPDF**: Playwright Chromiumベースの高精度なレンダリングエンジン。
+- **Mermaid & PlantUML 対応**: フローチャート、シーケンス図、クラス図などを鮮明なベクターSVGとして埋め込み。
+- **柔軟なダイアグラム配置**: `width`, `height`, `fit` (contain / fill), `align` (left / center / right) による精密なサイズ・位置制御。
+- **YAML Front Matter**: 用紙サイズ（A4）、向き（縦/横）、余白（margin）、フォント等をドキュメント単位で一括定義。
+- **フォントカスタマイズ**: OSインストール済みのローカルフォントおよび Google Fonts のWebフォントを個別指定可能。
+- **印刷品質のレイアウト制御**: 見出しの孤立抑止（Orphan Heading対策）、超長行コードブロックの自動折り返し、多列テーブルの可読性最適化。
+- **使いやすいCLI**: 出力先指定、自動ディレクトリ作成、ヘルプ・バージョン表示をサポート。
+
+---
+
+## インストール
+
+グローバルインストールしてCLIコマンドとして利用できます。
+
+```bash
+# npm を使用する場合
+npm install -g md-tech-pdf
+
+# pnpm を使用する場合
+pnpm add -g md-tech-pdf
+```
+
+また、インストールせずに `npx` で即座に実行することも可能です。
+
+```bash
+npx md-tech-pdf document.md -o output.pdf
+```
+
+---
+
 ## CLIの使い方
 
 ### 基本コマンド
@@ -135,13 +167,11 @@ graph TD
 ```
 ````
 
-````
-
 ### PlantUMLダイアグラム
 
 フェンスブロックで `plantuml` を指定します。
 
-```markdown
+````markdown
 ```plantuml {width=100mm align=center}
 @startuml
 actor User
@@ -149,9 +179,18 @@ participant Server
 User -> Server: リクエスト送信
 Server --> User: レスポンス返却
 @enduml
+```
 ````
 
-```
+> **注意 (PlantUMLの前提要件)**:
+> PlantUMLの描画には、ローカル環境に **Javaランタイム** および **PlantUMLのjarファイル** がインストールされている必要があります（Mermaidのみを使用する場合はJavaは不要です）。
+> 必要に応じて、Front Matterでjavaおよびjarのパスを明示指定できます。
+>
+> ```yaml
+> plantuml:
+>   javaPath: '/usr/bin/java'
+>   jarPath: '/path/to/plantuml.jar'
+> ```
 
 ---
 
@@ -208,7 +247,7 @@ md-tech-pdf/
 ├── tsconfig.json # TypeScriptコンパイラ設定
 └── vitest.config.ts # Vitestテストフレームワーク設定
 
-````
+```
 
 ---
 
@@ -224,7 +263,7 @@ md-tech-pdf/
 ```bash
 # 依存関係のインストール
 pnpm install
-````
+```
 
 ### スクリプト一覧
 
@@ -274,3 +313,14 @@ pnpm format
 6. **フェーズ6: VSCode Extensionの開発**
    - リアルタイムプレビュー機能
    - ワンクリックPDFエクスポート
+
+---
+
+## 既知の制約事項 (Known Limitations)
+
+v0.1.0-rc.1 時点で把握されている仕様および制約事項です。
+
+1. **ページまたぎテーブルでのヘッダー再描画 (`thead`)**: 行数の多い表が改ページされる際、2ページ目以降の先頭にテーブルヘッダーは自動再描画されません（実用上のデータ読解は可能です）。
+2. **縦長ダイアグラム直前の余白**: 高さが150mmを超える縦長ダイアグラムは、途中で切断されるのを防ぐ安全策（`break-inside: avoid`）により次ページに送られるため、前ページ下部に空白が生じる場合があります。
+3. **PlantUMLの前提環境**: PlantUMLの描画にはローカルのJavaランタイムおよびPlantUML jarが必要です（Mermaidのみ使用する場合は不要です）。
+4. **Google Fontsのネットワーク要件**: Google Fontsの読み込みにはPDF生成時にインターネット接続が必要です（オフライン時や障害時はシステムフォントへ自動フォールバックします）。
