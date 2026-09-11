@@ -20,6 +20,10 @@ export * from './pdf/types.js';
 export * from './pdf/default-options.js';
 export * from './pdf/error.js';
 export * from './pdf/pdf-generator.js';
+export * from './config/document-options.js';
+export * from './config/error.js';
+export * from './config/frontmatter-parser.js';
+export * from './config/config-resolver.js';
 
 export interface GeneratorOptions {
   inputPath?: string;

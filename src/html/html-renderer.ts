@@ -1,5 +1,8 @@
 import MarkdownIt from 'markdown-it';
-import { parseAttributes } from '../parser/attributes-parser.js';
+import { resolveDiagramOptions } from '../config/config-resolver.js';
+import type { DocumentOptions } from '../config/document-options.js';
+import { parseFrontMatter } from '../config/frontmatter-parser.js';
+import { parseRawAttributes } from '../parser/attributes-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
@@ -9,6 +12,7 @@ import { buildCompleteHtml, buildDiagramContainer } from './html-builder.js';
 export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
+  documentOptions?: DocumentOptions;
 }
 
 export interface HtmlRendererConfig {
@@ -18,7 +22,7 @@ export interface HtmlRendererConfig {
 
 /**
  * Converts Markdown technical documents into complete HTML documents,
- * rendering Mermaid and PlantUML diagram blocks into styled SVG containers.
+ * extracting Front Matter and rendering Mermaid and PlantUML diagram blocks into styled SVG containers.
  */
 export class HtmlRenderer {
   private readonly renderers: Map<DiagramType, DiagramRenderer>;
@@ -58,7 +62,44 @@ export class HtmlRenderer {
    * Renders Markdown source into a complete HTML5 document.
    */
   async render(markdown: string, options?: HtmlRenderOptions): Promise<string> {
-    const tokens = this.md.parse(markdown, {});
+    // 1. Extract Front Matter and separate body content
+    const { content: markdownBody, options: parsedDocOptions } = parseFrontMatter(markdown);
+
+    // Merge document options (argument options override parsed frontmatter)
+    const docOptions: DocumentOptions = {
+      ...parsedDocOptions,
+      ...options?.documentOptions,
+      diagram: {
+        ...parsedDocOptions.diagram,
+        ...options?.documentOptions?.diagram,
+      },
+      pdf: {
+        ...parsedDocOptions.pdf,
+        ...options?.documentOptions?.pdf,
+      },
+      mermaid: {
+        ...parsedDocOptions.mermaid,
+        ...options?.documentOptions?.mermaid,
+      },
+      plantuml: {
+        ...parsedDocOptions.plantuml,
+        ...options?.documentOptions?.plantuml,
+      },
+    };
+
+    // If PlantUML options are configured in Front Matter, create an ad-hoc renderer if default was used
+    let plantumlRenderer = this.renderers.get('plantuml');
+    if (
+      docOptions.plantuml &&
+      (!plantumlRenderer || plantumlRenderer instanceof PlantUmlRenderer)
+    ) {
+      plantumlRenderer = new PlantUmlRenderer({
+        javaPath: docOptions.plantuml.javaPath,
+        jarPath: docOptions.plantuml.jarPath,
+      });
+    }
+
+    const tokens = this.md.parse(markdownBody, {});
 
     // Collect all diagram fence tokens (mermaid, plantuml) to render asynchronously
     const pendingRenders: Array<{
@@ -97,7 +138,8 @@ export class HtmlRenderer {
         }
       }
 
-      const diagramOptions = parseAttributes(attributesString);
+      const rawOptions = parseRawAttributes(attributesString);
+      const diagramOptions = resolveDiagramOptions(rawOptions, docOptions.diagram);
       const cleanSource = token.content.replace(/\r?\n$/, '');
 
       pendingRenders.push({
@@ -106,6 +148,7 @@ export class HtmlRenderer {
           type: lang,
           source: cleanSource,
           options: diagramOptions,
+          rawOptions,
           line,
         },
       });
@@ -113,12 +156,21 @@ export class HtmlRenderer {
 
     // Render all diagrams asynchronously
     for (const item of pendingRenders) {
-      const renderer = this.renderers.get(item.block.type);
+      const renderer =
+        item.block.type === 'plantuml' && plantumlRenderer
+          ? plantumlRenderer
+          : this.renderers.get(item.block.type);
+
       if (!renderer) {
         continue;
       }
 
-      const svg = await renderer.render(item.block.source);
+      const renderOptions =
+        item.block.type === 'mermaid' && docOptions.mermaid?.theme
+          ? { theme: docOptions.mermaid.theme }
+          : undefined;
+
+      const svg = await renderer.render(item.block.source, renderOptions);
       const containerHtml = buildDiagramContainer(svg, item.block.options);
 
       const targetToken = tokens[item.index];

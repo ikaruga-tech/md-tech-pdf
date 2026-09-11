@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { HtmlRenderer, PdfGenerator } from '../src/index.js';
+import { HtmlRenderer, parseFrontMatter, PdfGenerator, resolvePdfOptions } from '../src/index.js';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -43,10 +43,13 @@ async function main(): Promise<void> {
   console.log(`Markdown: ${rawFilePath}`);
   console.log('Step 1: Rendering Markdown and Mermaid diagrams to HTML...');
 
-  // 3. Render HTML using HtmlRenderer
+  // 3. Extract Front Matter and resolve options
+  const { options: docOptions } = parseFrontMatter(markdownContent);
+  const baseName = path.basename(rawFilePath, path.extname(rawFilePath));
+
+  // 4. Render HTML using HtmlRenderer
   const htmlRenderer = new HtmlRenderer();
   let htmlResult = '';
-  const baseName = path.basename(rawFilePath, path.extname(rawFilePath));
 
   try {
     htmlResult = await htmlRenderer.render(markdownContent, { title: baseName });
@@ -63,15 +66,20 @@ async function main(): Promise<void> {
 
   console.log('Step 2: Generating PDF from HTML via Playwright Chromium...');
 
-  // 4. Generate PDF using PdfGenerator
+  // 5. Generate PDF using PdfGenerator with Front Matter PDF options
   const pdfGenerator = new PdfGenerator();
   const outputDir = path.resolve(process.cwd(), 'generated/pdf');
   const outputFilename = `${baseName}.pdf`;
   const outputPath = path.join(outputDir, outputFilename);
   const relativeOutputPath = path.relative(process.cwd(), outputPath);
 
+  const pdfOptions = resolvePdfOptions(docOptions.pdf);
+  if (docOptions.pdf) {
+    console.log('Applied Front Matter PDF options:', JSON.stringify(docOptions.pdf));
+  }
+
   try {
-    await pdfGenerator.generate(htmlResult, outputPath);
+    await pdfGenerator.generate(htmlResult, outputPath, pdfOptions);
     const stats = await fs.stat(outputPath);
     console.log('');
     console.log('Completed.');

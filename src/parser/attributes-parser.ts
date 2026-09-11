@@ -1,4 +1,10 @@
-import type { DiagramAlign, DiagramFit, DiagramOptions } from '../types/diagram.js';
+import { resolveDiagramOptions } from '../config/config-resolver.js';
+import type {
+  DiagramAlign,
+  DiagramFit,
+  DiagramOptions,
+  RawDiagramOptions,
+} from '../types/diagram.js';
 import { DiagramParseError } from './error.js';
 
 export const ALLOWED_UNITS = ['px', 'mm', 'cm', 'in', '%'] as const;
@@ -64,15 +70,11 @@ function validateAlign(rawValue: string): DiagramAlign {
 }
 
 /**
- * Parses an attribute string such as 'width=160mm height=80mm fit=contain align=center'.
+ * Parses raw diagram attributes without filling default values.
+ * Unspecified properties remain undefined.
  */
-export function parseAttributes(attributesString?: string): DiagramOptions {
-  const options: DiagramOptions = {
-    fit: 'contain',
-    align: 'center',
-    width: undefined,
-    height: undefined,
-  };
+export function parseRawAttributes(attributesString?: string): RawDiagramOptions {
+  const options: RawDiagramOptions = {};
 
   if (!attributesString || attributesString.trim() === '') {
     return options;
@@ -129,4 +131,13 @@ export function parseAttributes(attributesString?: string): DiagramOptions {
   }
 
   return options;
+}
+
+/**
+ * Parses an attribute string such as 'width=160mm height=80mm fit=contain align=center',
+ * returning resolved diagram options with built-in defaults applied.
+ */
+export function parseAttributes(attributesString?: string): DiagramOptions {
+  const rawOptions = parseRawAttributes(attributesString);
+  return resolveDiagramOptions(rawOptions);
 }
