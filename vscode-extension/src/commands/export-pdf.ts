@@ -1,5 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import {
+  type ExtensionSettings,
+  getExtensionSettings,
+  resolveCustomOutputPath,
+} from '../config/extension-settings.js';
 
 /**
  * Derives destination PDF file path from input Markdown file path in the same directory.
@@ -165,7 +170,13 @@ export async function resolveTargetInputPath(resource?: vscode.Uri): Promise<str
 /**
  * Shared executor for PDF export with progress reporting and error handling.
  */
-export async function executePdfExport(inputPath: string, outputPath: string): Promise<void> {
+export async function executePdfExport(
+  inputPath: string,
+  outputPath: string,
+  settings?: ExtensionSettings
+): Promise<void> {
+  const extSettings = settings ?? getExtensionSettings();
+
   try {
     const { convertMarkdownToPdf } = await import('md-tech-pdf');
 
@@ -181,9 +192,27 @@ export async function executePdfExport(inputPath: string, outputPath: string): P
           onProgress: (event) => {
             progress.report({ message: event.message });
           },
+          config: {
+            plantuml: extSettings.plantuml,
+          },
         });
       }
     );
+
+    // Automatically perform post-export action if configured
+    if (extSettings.export.afterExport === 'open') {
+      try {
+        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(outputPath));
+      } catch (err: unknown) {
+        console.error('[md-tech-pdf] Failed to open PDF automatically', err);
+      }
+    } else if (extSettings.export.afterExport === 'reveal') {
+      try {
+        await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+      } catch (err: unknown) {
+        console.error('[md-tech-pdf] Failed to reveal PDF in OS automatically', err);
+      }
+    }
 
     await showExportSuccess(outputPath);
   } catch (error: unknown) {
@@ -195,16 +224,24 @@ export async function executePdfExport(inputPath: string, outputPath: string): P
 /**
  * Command handler for "md-tech-pdf: Export to PDF".
  * Exports specified Markdown file (from Explorer context menu) or currently active file
- * to a vector PDF in the same directory.
+ * to a vector PDF in the configured directory or same directory.
  */
 export async function exportPdfCommand(resource?: vscode.Uri): Promise<void> {
+  const settings = getExtensionSettings();
   const inputPath = await resolveTargetInputPath(resource);
   if (!inputPath) {
     return;
   }
 
-  const outputPath = createPdfOutputPath(inputPath);
-  await executePdfExport(inputPath, outputPath);
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(inputPath))?.uri
+    .fsPath;
+  const outputPath = resolveCustomOutputPath(
+    inputPath,
+    settings.export.outputDirectory,
+    workspaceFolder
+  );
+
+  await executePdfExport(inputPath, outputPath, settings);
 }
 
 /**
@@ -212,6 +249,7 @@ export async function exportPdfCommand(resource?: vscode.Uri): Promise<void> {
  * Prompts user with a standard Save Dialog to choose destination path and filename.
  */
 export async function exportPdfAsCommand(): Promise<void> {
+  const settings = getExtensionSettings();
   const document = await prepareActiveMarkdownDocument();
   if (!document) {
     return;
@@ -234,5 +272,5 @@ export async function exportPdfAsCommand(): Promise<void> {
   }
 
   const outputPath = ensurePdfExtension(targetUri.fsPath);
-  await executePdfExport(inputPath, outputPath);
+  await executePdfExport(inputPath, outputPath, settings);
 }

@@ -29,6 +29,36 @@
           "group": "navigation@100"
         }
       ]
+    },
+    "configuration": {
+      "title": "md-tech-pdf",
+      "properties": {
+        "md-tech-pdf.plantuml.javaPath": {
+          "type": "string",
+          "default": "java",
+          "description": "Path to the Java executable used by PlantUML."
+        },
+        "md-tech-pdf.plantuml.jarPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the local PlantUML JAR file."
+        },
+        "md-tech-pdf.export.outputDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Default output directory for Export to PDF. Leave empty to use the Markdown file directory."
+        },
+        "md-tech-pdf.export.afterExport": {
+          "type": "string",
+          "enum": [
+            "none",
+            "open",
+            "reveal"
+          ],
+          "default": "none",
+          "description": "Action to perform automatically after a successful PDF export."
+        }
+      }
     }
   },
   "scripts": {

@@ -12,6 +12,10 @@ vi.mock('vscode', () => {
   };
   const workspace = {
     textDocuments: [] as unknown[],
+    getConfiguration: vi.fn().mockReturnValue({
+      get: vi.fn(),
+    }),
+    getWorkspaceFolder: vi.fn(),
   };
   const commands = {
     registerCommand: vi.fn(),
@@ -44,6 +48,11 @@ import {
   resolveTargetInputPath,
   showExportSuccess,
 } from '../vscode-extension/src/commands/export-pdf.js';
+import {
+  getExtensionSettings,
+  resolveCustomOutputPath,
+} from '../vscode-extension/src/config/extension-settings.js';
+import { HtmlRenderer } from '../src/html/html-renderer.js';
 
 describe('VS Code Extension export-pdf helper functions', () => {
   beforeEach(() => {
@@ -413,6 +422,138 @@ describe('VS Code Extension export-pdf helper functions', () => {
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
         'md-tech-pdf: Open a Markdown file before exporting.'
       );
+    });
+  });
+
+  describe('extension-settings helper functions', () => {
+    describe('getExtensionSettings', () => {
+      it('should return default settings when configuration values are not set', () => {
+        vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+          get: vi.fn().mockReturnValue(undefined),
+        } as unknown as ReturnType<typeof vscode.workspace.getConfiguration>);
+
+        const settings = getExtensionSettings();
+        expect(settings.plantuml.javaPath).toBe('java');
+        expect(settings.plantuml.jarPath).toBeUndefined();
+        expect(settings.export.outputDirectory).toBeUndefined();
+        expect(settings.export.afterExport).toBe('none');
+      });
+
+      it('should trim and return configured values', () => {
+        vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+          get: vi.fn((key: string) => {
+            switch (key) {
+              case 'plantuml.javaPath':
+                return '  /opt/homebrew/bin/java  ';
+              case 'plantuml.jarPath':
+                return '  /tools/plantuml.jar  ';
+              case 'export.outputDirectory':
+                return '  generated/pdf  ';
+              case 'export.afterExport':
+                return 'open';
+              default:
+                return undefined;
+            }
+          }),
+        } as unknown as ReturnType<typeof vscode.workspace.getConfiguration>);
+
+        const settings = getExtensionSettings();
+        expect(settings.plantuml.javaPath).toBe('/opt/homebrew/bin/java');
+        expect(settings.plantuml.jarPath).toBe('/tools/plantuml.jar');
+        expect(settings.export.outputDirectory).toBe('generated/pdf');
+        expect(settings.export.afterExport).toBe('open');
+      });
+
+      it('should convert whitespace-only strings to undefined or default', () => {
+        vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+          get: vi.fn((key: string) => {
+            switch (key) {
+              case 'plantuml.javaPath':
+                return '   ';
+              case 'plantuml.jarPath':
+                return '   ';
+              case 'export.outputDirectory':
+                return '   ';
+              case 'export.afterExport':
+                return 'invalid-action';
+              default:
+                return undefined;
+            }
+          }),
+        } as unknown as ReturnType<typeof vscode.workspace.getConfiguration>);
+
+        const settings = getExtensionSettings();
+        expect(settings.plantuml.javaPath).toBe('java');
+        expect(settings.plantuml.jarPath).toBeUndefined();
+        expect(settings.export.outputDirectory).toBeUndefined();
+        expect(settings.export.afterExport).toBe('none');
+      });
+
+      it('should accept reveal for afterExport', () => {
+        vi.mocked(vscode.workspace.getConfiguration).mockReturnValue({
+          get: vi.fn((key: string) => {
+            if (key === 'export.afterExport') {
+              return 'reveal';
+            }
+            return undefined;
+          }),
+        } as unknown as ReturnType<typeof vscode.workspace.getConfiguration>);
+
+        const settings = getExtensionSettings();
+        expect(settings.export.afterExport).toBe('reveal');
+      });
+    });
+
+    describe('resolveCustomOutputPath', () => {
+      it('should return same directory .pdf when outputDirectory is undefined', () => {
+        expect(resolveCustomOutputPath('/work/docs/spec.md', undefined)).toBe(
+          '/work/docs/spec.pdf'
+        );
+      });
+
+      it('should return same directory .pdf when outputDirectory is empty or whitespace', () => {
+        expect(resolveCustomOutputPath('/work/docs/spec.md', '')).toBe('/work/docs/spec.pdf');
+        expect(resolveCustomOutputPath('/work/docs/spec.md', '   ')).toBe('/work/docs/spec.pdf');
+      });
+
+      it('should place pdf in outputDirectory when outputDirectory is absolute', () => {
+        expect(resolveCustomOutputPath('/work/docs/spec.md', '/tmp/pdf')).toBe('/tmp/pdf/spec.pdf');
+      });
+
+      it('should resolve relative to workspaceFolder when workspaceFolder is provided', () => {
+        expect(
+          resolveCustomOutputPath('/work/project/docs/spec.md', 'generated/pdf', '/work/project')
+        ).toBe('/work/project/generated/pdf/spec.pdf');
+      });
+
+      it('should resolve relative to markdown directory when workspaceFolder is undefined', () => {
+        expect(resolveCustomOutputPath('/work/docs/spec.md', 'output', undefined)).toBe(
+          '/work/docs/output/spec.pdf'
+        );
+      });
+    });
+  });
+
+  describe('Core Front Matter priority over App Config defaults', () => {
+    it('should prioritize Front Matter plantuml settings over defaultOptions', async () => {
+      const markdown = `---
+plantuml:
+  jarPath: /frontmatter/plantuml.jar
+---
+# Test Document
+`;
+      const htmlRenderer = new HtmlRenderer();
+      // Render with defaultOptions specifying a different jarPath
+      const html = await htmlRenderer.render(markdown, {
+        defaultOptions: {
+          plantuml: {
+            javaPath: '/default/java',
+            jarPath: '/default/plantuml.jar',
+          },
+        },
+      });
+
+      expect(html).toContain('<h1>Test Document</h1>');
     });
   });
 });

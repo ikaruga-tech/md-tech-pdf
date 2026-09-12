@@ -13,6 +13,13 @@ export interface ConvertProgressEvent {
   message: string;
 }
 
+export interface ConvertAppConfig {
+  plantuml?: {
+    javaPath?: string;
+    jarPath?: string;
+  };
+}
+
 export interface ConvertOptions {
   /**
    * Destination path for the generated PDF.
@@ -24,6 +31,12 @@ export interface ConvertOptions {
    * Optional callback to receive step-by-step progress events.
    */
   onProgress?: (event: ConvertProgressEvent) => void;
+
+  /**
+   * Application-level default configuration (e.g. from editor settings or CLI flags).
+   * Note: Front Matter specified in the document always takes precedence over this configuration.
+   */
+  config?: ConvertAppConfig;
 }
 
 export interface ConvertResult {
@@ -115,7 +128,12 @@ export async function convertMarkdownToPdf(
   const htmlRenderer = new HtmlRenderer();
   let html: string;
   try {
-    html = await htmlRenderer.render(markdownContent, { title: baseName });
+    html = await htmlRenderer.render(markdownContent, {
+      title: baseName,
+      defaultOptions: {
+        plantuml: options.config?.plantuml,
+      },
+    });
   } catch (err: unknown) {
     throw new Error(
       `Failed to render HTML document: ${err instanceof Error ? err.message : String(err)}`,

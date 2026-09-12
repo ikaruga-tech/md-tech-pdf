@@ -13,6 +13,7 @@ export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
   documentOptions?: DocumentOptions;
+  defaultOptions?: DocumentOptions;
 }
 
 export interface HtmlRendererConfig {
@@ -65,32 +66,43 @@ export class HtmlRenderer {
     // 1. Extract Front Matter and separate body content
     const { content: markdownBody, options: parsedDocOptions } = parseFrontMatter(markdown);
 
-    // Merge document options (argument options override parsed frontmatter)
+    // Merge document options:
+    // priority: options.documentOptions > parsedDocOptions (Front Matter) > options.defaultOptions (App/VS Code settings)
+    const defaults = options?.defaultOptions;
+    const overrides = options?.documentOptions;
+
     const docOptions: DocumentOptions = {
+      ...defaults,
       ...parsedDocOptions,
-      ...options?.documentOptions,
+      ...overrides,
       diagram: {
+        ...defaults?.diagram,
         ...parsedDocOptions.diagram,
-        ...options?.documentOptions?.diagram,
+        ...overrides?.diagram,
       },
       pdf: {
+        ...defaults?.pdf,
         ...parsedDocOptions.pdf,
-        ...options?.documentOptions?.pdf,
+        ...overrides?.pdf,
       },
       mermaid: {
+        ...defaults?.mermaid,
         ...parsedDocOptions.mermaid,
-        ...options?.documentOptions?.mermaid,
+        ...overrides?.mermaid,
       },
       plantuml: {
+        ...defaults?.plantuml,
         ...parsedDocOptions.plantuml,
-        ...options?.documentOptions?.plantuml,
+        ...overrides?.plantuml,
       },
       style: {
+        ...defaults?.style,
         ...parsedDocOptions.style,
-        ...options?.documentOptions?.style,
+        ...overrides?.style,
         font: {
+          ...defaults?.style?.font,
           ...parsedDocOptions.style?.font,
-          ...options?.documentOptions?.style?.font,
+          ...overrides?.style?.font,
         },
       },
     };
