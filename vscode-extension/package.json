@@ -15,6 +15,10 @@
       {
         "command": "md-tech-pdf.exportPdf",
         "title": "md-tech-pdf: Export to PDF"
+      },
+      {
+        "command": "md-tech-pdf.exportPdfAs",
+        "title": "md-tech-pdf: Export to PDF As..."
       }
     ]
   },

@@ -18,10 +18,33 @@ vi.mock('vscode', () => ({
 
 import {
   createPdfOutputPath,
+  ensurePdfExtension,
   isMarkdownDocument,
 } from '../vscode-extension/src/commands/export-pdf.js';
 
 describe('VS Code Extension export-pdf helper functions', () => {
+  describe('ensurePdfExtension', () => {
+    it('should append .pdf when path has no extension', () => {
+      expect(ensurePdfExtension('output')).toBe('output.pdf');
+    });
+
+    it('should preserve existing .pdf extension without duplicating', () => {
+      expect(ensurePdfExtension('output.pdf')).toBe('output.pdf');
+    });
+
+    it('should preserve existing uppercase .PDF extension', () => {
+      expect(ensurePdfExtension('output.PDF')).toBe('output.PDF');
+    });
+
+    it('should append .pdf when path has multiple dots', () => {
+      expect(ensurePdfExtension('my.file')).toBe('my.file.pdf');
+    });
+
+    it('should handle nested directory paths with and without extension', () => {
+      expect(ensurePdfExtension('/path/to/my-document')).toBe('/path/to/my-document.pdf');
+      expect(ensurePdfExtension('/path/to/my-document.pdf')).toBe('/path/to/my-document.pdf');
+    });
+  });
   describe('createPdfOutputPath', () => {
     it('should convert document.md to document.pdf in the same directory', () => {
       expect(createPdfOutputPath('document.md')).toBe('document.pdf');
