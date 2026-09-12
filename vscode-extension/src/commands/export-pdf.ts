@@ -40,21 +40,62 @@ export function isMarkdownDocument(document: vscode.TextDocument): boolean {
 }
 
 /**
+ * Safely extracts error message from an unknown error.
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+/**
+ * Displays export success notification with interactive actions:
+ * "Open PDF" and "Reveal in Finder".
+ */
+export async function showExportSuccess(outputPath: string): Promise<void> {
+  const fileName = path.basename(outputPath);
+  const action = await vscode.window.showInformationMessage(
+    `md-tech-pdf: Exported ${fileName}`,
+    'Open PDF',
+    'Reveal in Finder'
+  );
+
+  if (action === 'Open PDF') {
+    try {
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(outputPath));
+    } catch (err: unknown) {
+      console.error('[md-tech-pdf] Failed to open PDF', err);
+      await vscode.window.showWarningMessage(
+        'md-tech-pdf: PDF was exported, but it could not be opened.'
+      );
+    }
+  } else if (action === 'Reveal in Finder') {
+    try {
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+    } catch (err: unknown) {
+      console.error('[md-tech-pdf] Failed to reveal PDF in OS', err);
+      await vscode.window.showWarningMessage(
+        'md-tech-pdf: PDF was exported, but it could not be revealed.'
+      );
+    }
+  }
+}
+
+/**
  * Prepares the currently active Markdown document for export.
  * Validates editor presence, markdown language, and saves untitled / dirty documents.
  */
 export async function prepareActiveMarkdownDocument(): Promise<vscode.TextDocument | undefined> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
-    await vscode.window.showInformationMessage('md-tech-pdf: No active Markdown file.');
+    await vscode.window.showWarningMessage('md-tech-pdf: Open a Markdown file before exporting.');
     return undefined;
   }
 
   const document = editor.document;
   if (!isMarkdownDocument(document)) {
-    await vscode.window.showWarningMessage(
-      'md-tech-pdf: The active file is not a Markdown document.'
-    );
+    await vscode.window.showWarningMessage('md-tech-pdf: Open a Markdown file before exporting.');
     return undefined;
   }
 
@@ -67,6 +108,7 @@ export async function prepareActiveMarkdownDocument(): Promise<vscode.TextDocume
   } else if (document.isDirty) {
     const saved = await document.save();
     if (!saved) {
+      await vscode.window.showErrorMessage('md-tech-pdf: Could not save the Markdown file.');
       return undefined;
     }
   }
@@ -81,7 +123,14 @@ export async function prepareActiveMarkdownDocument(): Promise<vscode.TextDocume
  * Falls back to active Markdown document if resource is omitted (e.g. from Command Palette).
  */
 export async function resolveTargetInputPath(resource?: vscode.Uri): Promise<string | undefined> {
-  if (resource && resource.scheme === 'file') {
+  if (resource) {
+    if (resource.scheme !== 'file') {
+      await vscode.window.showWarningMessage(
+        'md-tech-pdf: Only local Markdown files are supported.'
+      );
+      return undefined;
+    }
+
     if (!isMarkdownPath(resource.fsPath)) {
       await vscode.window.showWarningMessage(
         'md-tech-pdf: The selected file is not a Markdown document.'
@@ -96,6 +145,7 @@ export async function resolveTargetInputPath(resource?: vscode.Uri): Promise<str
     if (openDoc && openDoc.isDirty) {
       const saved = await openDoc.save();
       if (!saved) {
+        await vscode.window.showErrorMessage('md-tech-pdf: Could not save the Markdown file.');
         return undefined;
       }
     }
@@ -135,13 +185,10 @@ export async function executePdfExport(inputPath: string, outputPath: string): P
       }
     );
 
-    await vscode.window.showInformationMessage(
-      `md-tech-pdf: Exported ${path.basename(outputPath)}`
-    );
+    await showExportSuccess(outputPath);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('md-tech-pdf export error:', error);
-    await vscode.window.showErrorMessage(`md-tech-pdf: ${message}`);
+    console.error('[md-tech-pdf] PDF export failed', error);
+    await vscode.window.showErrorMessage(`md-tech-pdf: ${getErrorMessage(error)}`);
   }
 }
 

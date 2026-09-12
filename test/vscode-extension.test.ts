@@ -15,6 +15,7 @@ vi.mock('vscode', () => {
   };
   const commands = {
     registerCommand: vi.fn(),
+    executeCommand: vi.fn(),
   };
   const Uri = {
     file: (fsPath: string) => ({
@@ -36,9 +37,12 @@ vi.mock('vscode', () => {
 import {
   createPdfOutputPath,
   ensurePdfExtension,
+  getErrorMessage,
   isMarkdownDocument,
   isMarkdownPath,
+  prepareActiveMarkdownDocument,
   resolveTargetInputPath,
+  showExportSuccess,
 } from '../vscode-extension/src/commands/export-pdf.js';
 
 describe('VS Code Extension export-pdf helper functions', () => {
@@ -46,6 +50,22 @@ describe('VS Code Extension export-pdf helper functions', () => {
     vi.clearAllMocks();
     (vscode.window as { activeTextEditor: unknown }).activeTextEditor = undefined;
     (vscode.workspace as { textDocuments: unknown[] }).textDocuments = [];
+  });
+
+  describe('getErrorMessage', () => {
+    it('should extract message from Error instance', () => {
+      expect(getErrorMessage(new Error('Syntax error'))).toBe('Syntax error');
+    });
+
+    it('should return string directly when error is a string', () => {
+      expect(getErrorMessage('Custom error string')).toBe('Custom error string');
+    });
+
+    it('should convert number, null, and other types to string', () => {
+      expect(getErrorMessage(500)).toBe('500');
+      expect(getErrorMessage(null)).toBe('null');
+      expect(getErrorMessage(undefined)).toBe('undefined');
+    });
   });
 
   describe('ensurePdfExtension', () => {
@@ -152,6 +172,128 @@ describe('VS Code Extension export-pdf helper functions', () => {
     });
   });
 
+  describe('prepareActiveMarkdownDocument', () => {
+    it('should warn with unified guidance when active editor is missing', async () => {
+      (vscode.window as { activeTextEditor: unknown }).activeTextEditor = undefined;
+
+      const doc = await prepareActiveMarkdownDocument();
+      expect(doc).toBeUndefined();
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Open a Markdown file before exporting.'
+      );
+    });
+
+    it('should warn with unified guidance when active file is not markdown', async () => {
+      const nonMdDoc = {
+        languageId: 'typescript',
+        fileName: '/workspace/index.ts',
+        isUntitled: false,
+        isDirty: false,
+        uri: { scheme: 'file', fsPath: '/workspace/index.ts' },
+      };
+      (vscode.window as { activeTextEditor: unknown }).activeTextEditor = {
+        document: nonMdDoc,
+      };
+
+      const doc = await prepareActiveMarkdownDocument();
+      expect(doc).toBeUndefined();
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Open a Markdown file before exporting.'
+      );
+    });
+
+    it('should error when saving dirty document fails', async () => {
+      const saveMock = vi.fn().mockResolvedValue(false);
+      const dirtyDoc = {
+        languageId: 'markdown',
+        fileName: '/workspace/doc.md',
+        isUntitled: false,
+        isDirty: true,
+        save: saveMock,
+        uri: { scheme: 'file', fsPath: '/workspace/doc.md' },
+      };
+      (vscode.window as { activeTextEditor: unknown }).activeTextEditor = {
+        document: dirtyDoc,
+      };
+
+      const doc = await prepareActiveMarkdownDocument();
+      expect(doc).toBeUndefined();
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Could not save the Markdown file.'
+      );
+    });
+  });
+
+  describe('showExportSuccess', () => {
+    it('should show success notification with Open PDF and Reveal in Finder actions', async () => {
+      vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(undefined);
+
+      await showExportSuccess('/path/to/document.pdf');
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Exported document.pdf',
+        'Open PDF',
+        'Reveal in Finder'
+      );
+    });
+
+    it('should execute vscode.open command when user selects Open PDF', async () => {
+      vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(
+        'Open PDF' as unknown as undefined
+      );
+
+      await showExportSuccess('/path/to/document.pdf');
+
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        'vscode.open',
+        expect.objectContaining({ scheme: 'file', fsPath: '/path/to/document.pdf' })
+      );
+    });
+
+    it('should warn when Open PDF command execution throws an error', async () => {
+      vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(
+        'Open PDF' as unknown as undefined
+      );
+      vi.mocked(vscode.commands.executeCommand).mockRejectedValueOnce(
+        new Error('Cannot open file')
+      );
+
+      await showExportSuccess('/path/to/document.pdf');
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: PDF was exported, but it could not be opened.'
+      );
+    });
+
+    it('should execute revealFileInOS command when user selects Reveal in Finder', async () => {
+      vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(
+        'Reveal in Finder' as unknown as undefined
+      );
+
+      await showExportSuccess('/path/to/document.pdf');
+
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        'revealFileInOS',
+        expect.objectContaining({ scheme: 'file', fsPath: '/path/to/document.pdf' })
+      );
+    });
+
+    it('should warn when revealFileInOS command execution throws an error', async () => {
+      vi.mocked(vscode.window.showInformationMessage).mockResolvedValue(
+        'Reveal in Finder' as unknown as undefined
+      );
+      vi.mocked(vscode.commands.executeCommand).mockRejectedValueOnce(
+        new Error('Cannot reveal file')
+      );
+
+      await showExportSuccess('/path/to/document.pdf');
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: PDF was exported, but it could not be revealed.'
+      );
+    });
+  });
+
   describe('resolveTargetInputPath', () => {
     it('should prioritize resource URI over active text editor', async () => {
       // Setup active editor with A.md
@@ -173,6 +315,21 @@ describe('VS Code Extension export-pdf helper functions', () => {
       );
 
       expect(resolved).toBe('/workspace/B.md');
+    });
+
+    it('should warn and return undefined when resource scheme is not file', async () => {
+      const nonFileUri = {
+        scheme: 'untitled',
+        fsPath: 'untitled:Untitled-1',
+      };
+      const resolved = await resolveTargetInputPath(
+        nonFileUri as unknown as Parameters<typeof resolveTargetInputPath>[0]
+      );
+
+      expect(resolved).toBeUndefined();
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Only local Markdown files are supported.'
+      );
     });
 
     it('should warn and return undefined when resource is not a markdown file', async () => {
@@ -208,7 +365,7 @@ describe('VS Code Extension export-pdf helper functions', () => {
       expect(resolved).toBe('/workspace/doc.md');
     });
 
-    it('should return undefined if saving dirty matching document fails', async () => {
+    it('should return undefined and error if saving dirty matching document fails', async () => {
       const saveMock = vi.fn().mockResolvedValue(false);
       const openDoc = {
         languageId: 'markdown',
@@ -227,6 +384,9 @@ describe('VS Code Extension export-pdf helper functions', () => {
 
       expect(saveMock).toHaveBeenCalled();
       expect(resolved).toBeUndefined();
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Could not save the Markdown file.'
+      );
     });
 
     it('should fallback to active editor when resource is not provided', async () => {
@@ -250,8 +410,8 @@ describe('VS Code Extension export-pdf helper functions', () => {
 
       const resolved = await resolveTargetInputPath(undefined);
       expect(resolved).toBeUndefined();
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        'md-tech-pdf: No active Markdown file.'
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'md-tech-pdf: Open a Markdown file before exporting.'
       );
     });
   });
