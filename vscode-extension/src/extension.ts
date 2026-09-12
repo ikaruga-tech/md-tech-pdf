@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
+import { exportPdfCommand } from './commands/export-pdf.js';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const disposable = vscode.commands.registerCommand('md-tech-pdf.exportPdf', async () => {
-    await vscode.window.showInformationMessage('md-tech-pdf: Export to PDF command is ready.');
-  });
+  const disposable = vscode.commands.registerCommand('md-tech-pdf.exportPdf', exportPdfCommand);
 
   context.subscriptions.push(disposable);
 }
