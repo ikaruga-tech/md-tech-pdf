@@ -19,6 +19,13 @@ export default tsPlugin.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'generated/**', 'coverage/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'generated/**',
+      'coverage/**',
+      'vscode-extension/dist/**',
+      'vscode-extension/node_modules/**',
+    ],
   }
 );

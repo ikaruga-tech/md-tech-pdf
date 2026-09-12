@@ -1,0 +1,34 @@
+{
+  "name": "md-tech-pdf",
+  "displayName": "md-tech-pdf",
+  "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
+  "version": "0.2.0",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:md-tech-pdf.exportPdf"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "md-tech-pdf.exportPdf",
+        "title": "md-tech-pdf: Export to PDF"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.8.0"
+  }
+}

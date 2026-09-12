@@ -12,6 +12,7 @@ generated/**
 # ==========================
 
 node_modules/
+vscode-extension/node_modules/
 
 # ==========================
 # Build Output
@@ -22,6 +23,7 @@ build/
 out/
 coverage/
 .nyc_output/
+vscode-extension/dist/
 
 *.tsbuildinfo
 *.tgz
