@@ -22,14 +22,21 @@ export function ensurePdfExtension(filePath: string): string {
 }
 
 /**
+ * Checks if a given file path has a Markdown file extension (.md, .markdown), case-insensitively.
+ */
+export function isMarkdownPath(filePath: string): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+  return ext === '.md' || ext === '.markdown';
+}
+
+/**
  * Checks if the text document is a Markdown file.
  */
 export function isMarkdownDocument(document: vscode.TextDocument): boolean {
   if (document.languageId === 'markdown') {
     return true;
   }
-  const ext = path.extname(document.fileName).toLowerCase();
-  return ext === '.md' || ext === '.markdown';
+  return isMarkdownPath(document.fileName);
 }
 
 /**
@@ -68,6 +75,44 @@ export async function prepareActiveMarkdownDocument(): Promise<vscode.TextDocume
 }
 
 /**
+ * Resolves the Markdown file path to export.
+ * If resource is provided (e.g. from Explorer context menu), it takes precedence over activeTextEditor.
+ * Also saves dirty documents if matching document is currently opened.
+ * Falls back to active Markdown document if resource is omitted (e.g. from Command Palette).
+ */
+export async function resolveTargetInputPath(resource?: vscode.Uri): Promise<string | undefined> {
+  if (resource && resource.scheme === 'file') {
+    if (!isMarkdownPath(resource.fsPath)) {
+      await vscode.window.showWarningMessage(
+        'md-tech-pdf: The selected file is not a Markdown document.'
+      );
+      return undefined;
+    }
+
+    // If the resource is currently open in an editor with unsaved changes, save it first
+    const openDoc = vscode.workspace.textDocuments.find(
+      (doc) => doc.uri.fsPath === resource.fsPath
+    );
+    if (openDoc && openDoc.isDirty) {
+      const saved = await openDoc.save();
+      if (!saved) {
+        return undefined;
+      }
+    }
+
+    return resource.fsPath;
+  }
+
+  // Fallback to active editor document
+  const document = await prepareActiveMarkdownDocument();
+  if (!document) {
+    return undefined;
+  }
+
+  return document.uri.fsPath;
+}
+
+/**
  * Shared executor for PDF export with progress reporting and error handling.
  */
 export async function executePdfExport(inputPath: string, outputPath: string): Promise<void> {
@@ -102,17 +147,16 @@ export async function executePdfExport(inputPath: string, outputPath: string): P
 
 /**
  * Command handler for "md-tech-pdf: Export to PDF".
- * Exports currently active Markdown file to a vector PDF in the same directory.
+ * Exports specified Markdown file (from Explorer context menu) or currently active file
+ * to a vector PDF in the same directory.
  */
-export async function exportPdfCommand(): Promise<void> {
-  const document = await prepareActiveMarkdownDocument();
-  if (!document) {
+export async function exportPdfCommand(resource?: vscode.Uri): Promise<void> {
+  const inputPath = await resolveTargetInputPath(resource);
+  if (!inputPath) {
     return;
   }
 
-  const inputPath = document.uri.fsPath;
   const outputPath = createPdfOutputPath(inputPath);
-
   await executePdfExport(inputPath, outputPath);
 }
 
