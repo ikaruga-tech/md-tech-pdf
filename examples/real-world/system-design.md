@@ -17,7 +17,7 @@ style:
     google:
       families:
         - name: 'LINE Seed JP'
-          weights: [400, 500, 700]
+          weights: [400, 700]
         - name: 'Roboto Mono'
           weights: [400, 700]
 ---

@@ -30,17 +30,21 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 1rem;
+  font-size: 10.5pt;
+  line-height: 1.7;
+  font-weight: 400;
   word-wrap: break-word;
+}
+
+strong,
+b {
+  font-weight: 700;
 }
 
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
-  margin-top: 1.8rem;
-  margin-bottom: 0.8rem;
-  font-weight: 600;
-  line-height: 1.3;
   color: var(--color-text);
+  line-height: 1.35;
   page-break-after: avoid;
   break-after: avoid;
 }
@@ -52,21 +56,51 @@ h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + * {
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 20pt;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: 16pt;
+  font-weight: 700;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
   padding-bottom: 0.3rem;
   border-bottom: 1px solid var(--color-border);
 }
 
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.1rem; }
-h5 { font-size: 1rem; }
-h6 { font-size: 0.9rem; color: var(--color-text-muted); }
+h3 {
+  font-size: 13pt;
+  font-weight: 700;
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+
+h4 {
+  font-size: 11.5pt;
+  font-weight: 400;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+h5 {
+  font-size: 10.5pt;
+  font-weight: 400;
+  margin-top: 1.1em;
+  margin-bottom: 0.3em;
+}
+
+h6 {
+  font-size: 9.5pt;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+}
 
 /* Paragraph & Lists */
 p {
@@ -81,7 +115,7 @@ ul, ol {
 }
 
 li {
-  margin-bottom: 0.3rem;
+  margin: 0.2em 0;
 }
 
 li > p {
@@ -93,6 +127,7 @@ blockquote {
   margin: 1rem 0;
   padding: 0.5rem 1rem;
   color: var(--color-text-muted);
+  font-weight: 400;
   border-left: 0.25rem solid var(--color-blockquote-border);
   background-color: var(--color-code-bg);
 }
@@ -111,16 +146,18 @@ table {
 }
 
 table th, table td {
-  padding: 0.5rem 0.6rem;
+  padding: 6px 8px;
   border: 1px solid var(--color-border);
   text-align: left;
+  line-height: 1.5;
   overflow-wrap: anywhere;
   word-break: normal;
 }
 
 table th {
-  background-color: var(--color-code-bg);
-  font-weight: 600;
+  background-color: #f0f3f6;
+  font-weight: 400;
+  border-bottom: 2px solid #cbd5e1;
   word-break: keep-all;
   overflow-wrap: normal;
 }
@@ -133,19 +170,26 @@ table tr:nth-child(2n) {
 code {
   font-family: var(--font-mono);
   font-size: 85%;
+  font-weight: 400;
   padding: 0.2em 0.4em;
   margin: 0;
   background-color: var(--color-code-bg);
   border-radius: 4px;
 }
 
+:not(pre) > code {
+  font-size: 0.9em;
+  font-weight: 400;
+}
+
 pre {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
-  padding: 1rem;
+  padding: 0.8rem 1rem;
   font-family: var(--font-mono);
-  font-size: 85%;
-  line-height: 1.45;
+  font-size: 9pt;
+  font-weight: 400;
+  line-height: 1.5;
   background-color: var(--color-code-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -160,7 +204,9 @@ pre code {
   padding: 0;
   background-color: transparent;
   border-radius: 0;
-  font-size: 100%;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 400;
   white-space: inherit;
   overflow-wrap: inherit;
 }
