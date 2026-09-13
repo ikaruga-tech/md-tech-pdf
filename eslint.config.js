@@ -25,7 +25,10 @@ export default tsPlugin.config(
       'generated/**',
       'coverage/**',
       'vscode-extension/dist/**',
+      'vscode-extension/out/**',
       'vscode-extension/node_modules/**',
+      'vscode-extension/.vscode-test/**',
+      '.vscode-test/**',
     ],
   }
 );

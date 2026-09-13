@@ -1,0 +1,4 @@
+{
+  "md-tech-pdf.export.outputDirectory": "generated/pdf",
+  "md-tech-pdf.export.afterExport": "none"
+}

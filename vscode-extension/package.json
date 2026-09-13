@@ -3,6 +3,7 @@
   "displayName": "md-tech-pdf",
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
   "version": "0.2.0",
+  "publisher": "ikaruga-tech",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -63,15 +64,25 @@
   },
   "scripts": {
     "build": "tsc -p .",
+    "compile:tests": "tsc -p tsconfig.test.json",
     "watch": "tsc -p . --watch",
-    "typecheck": "tsc -p . --noEmit"
+    "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "pretest:unit": "npm run compile:tests",
+    "test:unit": "mocha 'out/test/unit/**/*.test.js'",
+    "pretest:extension": "npm run build && npm run compile:tests",
+    "test:extension": "vscode-test",
+    "pretest": "npm run build && npm run compile:tests",
+    "test": "npm run test:unit && npm run test:extension"
   },
   "dependencies": {
     "md-tech-pdf": "file:.."
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "typescript": "^5.8.0"
   }
 }

@@ -24,6 +24,9 @@ out/
 coverage/
 .nyc_output/
 vscode-extension/dist/
+vscode-extension/out/
+.vscode-test/
+vscode-extension/.vscode-test/
 
 *.tsbuildinfo
 *.tgz
