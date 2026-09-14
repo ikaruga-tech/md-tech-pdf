@@ -5,6 +5,40 @@ All notable changes to the "md-tech-pdf" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-14
+
+### Added
+
+- PDF-like preview for Markdown documents in VS Code (`md-tech-pdf.openPreview`).
+- Live Mermaid and PlantUML diagram rendering in preview.
+- Configurable auto-refresh modes: `manual`, `onSave` (default), and `onType` (with 500ms debounce).
+- High-performance in-memory SVG diagram cache keyed by SHA-256.
+- Relative local image rendering support in preview.
+- Diagram-level error recovery displaying non-blocking inline fallback cards.
+
+### Improved
+
+- Preview rendering performance through cached diagram SVGs.
+- Responsive image handling within the preview viewport.
+- Preview lifecycle and stale-render race condition protection.
+- Error notifications and Output Channel logging behavior.
+
+### Security and Hardening
+
+- Strict Webview Content Security Policy (CSP) with scripts explicitly disabled (`enableScripts: false`).
+- Workspace and local resource boundary validation.
+- Canonical realpath validation to prevent symlink directory traversal.
+- Rejection of internal VS Code URI schemes (`vscode-file:`, `vscode-resource:`, `file:`).
+- Sanitized user-facing error notifications preventing local path disclosure.
+
+### Known Limitations
+
+- Preview approximates PDF layout but is not exact print-level pagination.
+- Scroll position may reset during automatic refresh.
+- Editor-preview scroll synchronization is not supported in this version.
+- Diagram cache is in-memory only and resets upon VS Code reload.
+- Local resources referenced from CSS `url(...)` are not rewritten.
+
 ## [0.3.0-rc.1] - 2026-09-14
 
 ### Added
