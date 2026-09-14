@@ -3,10 +3,14 @@ import type { DiagramFit, DiagramOptions } from '../types/diagram.js';
 import { DEFAULT_DOCUMENT_STYLE } from './default-style.js';
 import { buildFontFamilyCss, buildGoogleFontsUrl } from './google-fonts.js';
 
+export type RenderTarget = 'pdf' | 'preview';
+
 export interface DocumentBuildOptions {
   title?: string;
   customCss?: string;
   fontOptions?: FontOptions;
+  target?: RenderTarget;
+  extraHeadHtml?: string;
 }
 
 function escapeHtml(text: string): string {
@@ -90,6 +94,7 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
   const fontCss = fontStyleRules.length > 0 ? fontStyleRules.join('\n') : '';
 
   const headContent = [
+    ...(options?.extraHeadHtml ? [options.extraHeadHtml] : []),
     '  <meta charset="UTF-8">',
     '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
     `  <title>${escapeHtml(title)}</title>`,
@@ -101,6 +106,17 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
     '  </style>',
   ].join('\n');
 
+  const isPreview = options?.target === 'preview';
+  const finalBodyContent = isPreview
+    ? [
+        '<div class="md-tech-pdf-preview-canvas">',
+        '  <main class="md-tech-pdf-preview-page">',
+        bodyContent,
+        '  </main>',
+        '</div>',
+      ].join('\n')
+    : bodyContent;
+
   return [
     '<!DOCTYPE html>',
     '<html lang="ja">',
@@ -108,7 +124,7 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
     headContent,
     '</head>',
     '<body>',
-    bodyContent,
+    finalBodyContent,
     '</body>',
     '</html>',
     '',

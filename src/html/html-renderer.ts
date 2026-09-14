@@ -7,13 +7,21 @@ import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
-import { buildCompleteHtml, buildDiagramContainer } from './html-builder.js';
+import {
+  buildCompleteHtml,
+  buildDiagramContainer,
+  type RenderTarget,
+} from './html-builder.js';
+
+export type { RenderTarget };
 
 export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
   documentOptions?: DocumentOptions;
   defaultOptions?: DocumentOptions;
+  target?: RenderTarget;
+  extraHeadHtml?: string;
 }
 
 export interface HtmlRendererConfig {
