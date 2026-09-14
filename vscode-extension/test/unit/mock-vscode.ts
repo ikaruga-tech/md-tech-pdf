@@ -1,4 +1,12 @@
-import * as path from 'node:path';
+let configStore: Record<string, unknown> = {};
+
+export function setMockConfiguration(store: Record<string, unknown>): void {
+  configStore = { ...store };
+}
+
+export function clearMockConfiguration(): void {
+  configStore = {};
+}
 
 // Minimal mock of the 'vscode' module for Node.js unit testing outside extension host
 const mockVscode = {
@@ -31,6 +39,20 @@ const mockVscode = {
   },
   workspace: {
     getWorkspaceFolder: () => undefined,
+    getConfiguration: (section?: string) => ({
+      get: (key: string, defaultValue?: unknown) => {
+        const fullKey = section ? `${section}.${key}` : key;
+        if (configStore[fullKey] !== undefined) {
+          return configStore[fullKey];
+        }
+        if (configStore[key] !== undefined) {
+          return configStore[key];
+        }
+        return defaultValue;
+      },
+    }),
+    onDidSaveTextDocument: () => ({ dispose: () => {} }),
+    onDidChangeTextDocument: () => ({ dispose: () => {} }),
   },
   window: {
     createWebviewPanel: () => ({}),

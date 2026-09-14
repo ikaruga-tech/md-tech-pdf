@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 
 export type AfterExportAction = 'none' | 'open' | 'reveal';
+export type PreviewRefreshMode = 'manual' | 'onSave' | 'onType';
 
 export interface ExtensionSettings {
   plantuml: {
@@ -10,6 +11,9 @@ export interface ExtensionSettings {
   export: {
     outputDirectory?: string;
     afterExport: AfterExportAction;
+  };
+  preview: {
+    refresh: PreviewRefreshMode;
   };
 }
 
@@ -21,6 +25,9 @@ export interface RawExtensionSettings {
   export?: {
     outputDirectory?: string;
     afterExport?: string;
+  };
+  preview?: {
+    refresh?: string;
   };
 }
 
@@ -42,6 +49,10 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
   const afterExport: AfterExportAction =
     rawAfterExport === 'open' || rawAfterExport === 'reveal' ? rawAfterExport : 'none';
 
+  const rawRefresh = raw?.preview?.refresh;
+  const refresh: PreviewRefreshMode =
+    rawRefresh === 'manual' || rawRefresh === 'onType' ? rawRefresh : 'onSave';
+
   return {
     plantuml: {
       javaPath,
@@ -50,6 +61,9 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
     export: {
       outputDirectory,
       afterExport,
+    },
+    preview: {
+      refresh,
     },
   };
 }

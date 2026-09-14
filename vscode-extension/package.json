@@ -94,6 +94,16 @@
           ],
           "default": "none",
           "description": "Action to perform automatically after a successful PDF export."
+        },
+        "md-tech-pdf.preview.refresh": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "onSave",
+            "onType"
+          ],
+          "default": "onSave",
+          "description": "Controls when an open md-tech-pdf preview is refreshed."
         }
       }
     }

@@ -577,3 +577,67 @@ WebviewPanel 作成時の `localResourceRoots` は、最小権限（Least Privil
 - CSS `url(...)`:
   - ユーザー定義の外部 CSS やカスタムスタイルにおける相対 `url(...)` の Webview URI 変換は Phase 15 のスコープ外とし、Markdown 内の画像 `src`（および raw HTML の `<img src="...">`）を対象とします。
 
+## 19. Auto Refresh と Diagram Cache による Preview 高速化（Phase 16）
+
+### 19.1 Auto Refresh アーキテクチャと更新モード
+
+エディタ編集と連動したプレビュー体験を向上させるため、自動更新（Auto Refresh）機構を導入しました。
+設定項目 `md-tech-pdf.preview.refresh` により以下の3つの動作モードを選択可能です：
+
+- `manual`:
+  - ファイル保存や編集による自動再描画を行いません。ユーザーが明示的にコマンドを実行したときのみ描画します。
+- `onSave`（デフォルト）:
+  - ドキュメント保存イベント（`vscode.workspace.onDidSaveTextDocument`）を検知し、対象ドキュメントのプレビューを即座に再描画します。
+- `onType`:
+  - ドキュメント編集イベント（`vscode.workspace.onDidChangeTextDocument`）を検知し、タイピング中の過度な再描画を抑制するため 500ms のディバウンス（Debounce）処理を経て自動再描画します。
+
+プレビュー管理モジュール（`PreviewManager`）において、開いているドキュメント URI ごとにディバウンスタイマーを独立管理し、複数ドキュメントを同時に編集しても干渉しません。また、パネル破棄時（`dispose`）には該当ドキュメントのタイマーが確実に破棄されます。
+
+### 19.2 レースコンディション制御と世代管理（Stale Render Protection）
+
+非同期のダイアグラムレンダリングやファイル読み込み中に新たな編集が発生した場合、古い処理結果が後から完了して最新のプレビューを上書きしてしまう問題（Stale Render）を防ぐため、世代カウンター（`renderGeneration`）による追跡機構を導入しました：
+
+- 各再描画リクエストの開始時に `renderGeneration` をインクリメントします。
+- 非同期処理の節目（ファイル読み込み完了後、ダイアグラム描画完了後、エラー捕捉時）で、現在の世代番号が最新の `renderGeneration` と一致するかを検証します。
+- 新しいリクエストが既に開始されている場合は、完了した古い描画結果を静かに破棄します。
+- バックグラウンド再描画（`isBackgroundRefresh: true`）時は全画面ローディング表示を抑止し、タイピング中や保存時の画面チラつき（Flicker）を防止します。
+
+### 19.3 Diagram Cache アーキテクチャ
+
+ダイアグラム（Mermaid / PlantUML）の再描画プロセス起動コストを削減するため、インメモリ SVG キャッシュ機構を構築しました：
+
+- Core と Extension の疎結合性:
+  - Core 側に VS Code API に非依存の `IDiagramRenderCache` インターフェースおよび `DiagramRenderCache` 実装を提供。
+  - Extension 側では `ExtensionDiagramCache` を保持し、`HtmlRenderer.render(..., { diagramCache })` へ注入します。
+- キャッシュキーの設計（`computeDiagramCacheKey`）:
+  - ダイアグラム種別（`mermaid` または `plantuml`）
+  - ソースコード文字列
+  - SVG 出力に影響を与えるオプション（Mermaid の場合は `theme`、PlantUML の場合は `javaPath`, `jarPath`, `jarMtime`）
+  - レイアウト属性（`width`, `height`, `fit`, `align`）は外側のコンテナ `<div>` のインラインスタイルや CSS クラスとして処理され SVG 本文には影響しないため、キャッシュキーから意図的に除外しています。これにより、サイズや配置の微調整による不要なキャッシュミスを防ぎます。
+- エラー結果の非キャッシュ方針:
+  - 描画に失敗したダイアグラム（構文エラーやプロセス障害）はキャッシュに登録しません。文法修正後に即座に再レンダリングが行われます。
+- ライフサイクルと永続化方針:
+  - キャッシュはメモリ上（`Map<string, string>`）にのみ保持され、ディスクには永続化しません。VS Code 終了時またはマネージャー破棄時に全件クリアされます。
+
+### 19.4 ベンチマーク実測値（`system-design.md`）
+
+8件のダイアグラム（Mermaid 5件、PlantUML 3件）を含む複合技術文書（`examples/real-world/system-design.md`）を用いたベンチマーク再測定結果（Core 単体処理時間）は以下の通りです：
+
+- Cold render（空キャッシュ・3回測定平均）: 13.20 秒（約 13,202 ms）
+- Warm render（全8件ダイアグラムキャッシュヒット）: 10.11 ミリ秒（初回比 約 1,300 倍高速化）
+- Paragraph-only edit（本文段落のみ編集・全8件キャッシュヒット）: 8.15 ミリ秒
+- Mermaid 1件編集（Mermaid 1件のみ再生成、残り7件キャッシュヒット）: 0.64 秒（約 640 ms、初回比 約 20 倍高速化）
+- PlantUML 1件編集（PlantUML 1件のみ再生成、残り7件キャッシュヒット）: 3.92 秒（約 3,920 ms、初回比 約 3.4 倍高速化）
+
+なお、上記は Core `HtmlRenderer.render()` 単体のベンチマーク測定値です。VS Code 拡張機能の End-to-End（ファイル読み込み、Webview URI 変換、Webview HTML 更新）ではさらに約 5〜10 ms 程度が付加されますが、Warm 時は End-to-End でも約 15〜20 ms 程度で即座に反映されます。
+
+### 19.5 スクロール位置に関する制約（Scroll Position Limitation）
+
+Phase 16 における再描画では Webview 内の HTML を丸ごと置換するため、再描画時にスクロール位置がトップへ巻き戻る制約が存在します。エディタ側カーソル位置との双方向スクロール同期（Scroll Sync）および Webview スクロール位置の永続維持は Phase 17 以降の課題とします。
+
+### 19.6 Phase 15 URL スキーム補足（`http:` および `vscode-webview:`）
+
+- `http:` スキーム:
+  - 外部非暗号化 HTTP 通信は Webview の CSP（`https:` のみ許可）によりブロックされる場合がありますが、ローカルファイル解決を誤って行わないよう判定し、そのまま維持します。
+- `vscode-webview:` スキーム:
+  - 既に拡張機能によって Webview 用に変換済みの URI については、再変換を行わず安全に維持します。

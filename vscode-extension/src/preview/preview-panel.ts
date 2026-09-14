@@ -40,6 +40,21 @@ export function getPreviewOutputChannel(): vscode.OutputChannel {
   return previewOutputChannel;
 }
 
+export interface IDiagramRenderCache {
+  get(key: string): string | undefined;
+  set(key: string, svg: string): void;
+  has?(key: string): boolean;
+  delete?(key: string): boolean;
+  clear?(): void;
+  readonly size?: number;
+}
+
+export interface PreviewRenderOptions {
+  settings?: ExtensionSettings;
+  diagramCache?: IDiagramRenderCache;
+  isBackgroundRefresh?: boolean;
+}
+
 /**
  * Manages an individual WebviewPanel for a Markdown document preview.
  * Encapsulates Core HtmlRenderer invocation, error handling, and lifecycle.
@@ -53,6 +68,7 @@ export class PreviewPanel implements vscode.Disposable {
   private readonly onDisposeEmitter = new vscode.EventEmitter<void>();
   private readonly outputChannel: vscode.OutputChannel;
   private hasWarnedDiagramError = false;
+  private renderGeneration = 0;
 
   public readonly onDidDispose = this.onDisposeEmitter.event;
 
@@ -80,7 +96,7 @@ export class PreviewPanel implements vscode.Disposable {
   public static create(
     documentUri: vscode.Uri,
     viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside,
-    settings?: ExtensionSettings
+    settingsOrOptions?: ExtensionSettings | PreviewRenderOptions
   ): PreviewPanel {
     const fileName = path.basename(documentUri.fsPath);
     const localResourceRoots = resolveLocalResourceRoots(documentUri);
@@ -97,7 +113,7 @@ export class PreviewPanel implements vscode.Disposable {
 
     const instance = new PreviewPanel(panel, documentUri);
     instance.showLoading();
-    void instance.render(settings);
+    void instance.render(settingsOrOptions);
 
     return instance;
   }
@@ -107,6 +123,17 @@ export class PreviewPanel implements vscode.Disposable {
    */
   public reveal(viewColumn?: vscode.ViewColumn): void {
     this.panel.reveal(viewColumn ?? this.panel.viewColumn ?? vscode.ViewColumn.Beside);
+  }
+
+  /**
+   * Triggers an automatic or background refresh of the preview.
+   * Does not replace existing content with a loading indicator to avoid flickering.
+   */
+  public async refresh(options?: PreviewRenderOptions): Promise<void> {
+    return this.render({
+      ...options,
+      isBackgroundRefresh: true,
+    });
   }
 
   /**
@@ -143,9 +170,19 @@ export class PreviewPanel implements vscode.Disposable {
 
   /**
    * Reads Markdown content, parses Front Matter, and generates the preview HTML.
+   * Tracks generation ID to discard stale render results from previous asynchronous requests.
    */
-  public async render(settings?: ExtensionSettings): Promise<void> {
-    const extSettings = settings ?? getExtensionSettings();
+  public async render(
+    settingsOrOptions?: ExtensionSettings | PreviewRenderOptions
+  ): Promise<void> {
+    const options: PreviewRenderOptions =
+      settingsOrOptions && 'plantuml' in settingsOrOptions
+        ? { settings: settingsOrOptions as ExtensionSettings }
+        : ((settingsOrOptions as PreviewRenderOptions) ?? {});
+
+    const extSettings = options.settings ?? getExtensionSettings();
+    const isBackgroundRefresh = options.isBackgroundRefresh ?? false;
+    const currentGeneration = ++this.renderGeneration;
 
     try {
       // Prefer current in-memory text if document is open in an editor
@@ -159,6 +196,11 @@ export class PreviewPanel implements vscode.Disposable {
       } else {
         const fileBytes = await vscode.workspace.fs.readFile(this.documentUri);
         markdownContent = Buffer.from(fileBytes).toString('utf-8');
+      }
+
+      // Check if a newer render request superseded this one while awaiting file reading
+      if (currentGeneration !== this.renderGeneration) {
+        return;
       }
 
       const { HtmlRenderer, parseFrontMatter } = await import('md-tech-pdf');
@@ -188,6 +230,7 @@ export class PreviewPanel implements vscode.Disposable {
         extraHeadHtml: cspTag,
         target: 'preview',
         resourceUrlTransformer,
+        diagramCache: options.diagramCache,
         defaultOptions: {
           plantuml: extSettings.plantuml,
         },
@@ -202,17 +245,30 @@ export class PreviewPanel implements vscode.Disposable {
           this.outputChannel.appendLine(event.message.trim());
           this.outputChannel.appendLine('----------------------------------------');
         },
+        onCacheEvent: (event: any) => {
+          const status = event.hit ? 'HIT' : 'MISS';
+          const typeLabel = event.type === 'plantuml' ? 'PlantUML' : 'Mermaid';
+          this.outputChannel.appendLine(`[Diagram Cache] ${status} ${typeLabel} #${event.index}`);
+        },
       });
+
+      // Discard stale render result if a newer render was triggered during async diagram processing
+      if (currentGeneration !== this.renderGeneration) {
+        return;
+      }
 
       this.panel.webview.html = html;
 
-      if (diagramErrorCount > 0 && !this.hasWarnedDiagramError) {
+      if (!isBackgroundRefresh && diagramErrorCount > 0 && !this.hasWarnedDiagramError) {
         this.hasWarnedDiagramError = true;
         void vscode.window.showWarningMessage(
           'md-tech-pdf: Some diagrams could not be rendered. See "md-tech-pdf" Output for details.'
         );
       }
     } catch (error: unknown) {
+      if (currentGeneration !== this.renderGeneration) {
+        return;
+      }
       console.error('[md-tech-pdf] Preview rendering failed', error);
       this.showError(error);
     }

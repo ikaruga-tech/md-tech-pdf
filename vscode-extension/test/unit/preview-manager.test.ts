@@ -9,11 +9,16 @@ class MockPreviewPanel implements IPreviewPanelInstance {
   public isRevealed = false;
   public revealedColumn?: vscode.ViewColumn;
   public isDisposed = false;
+  public refreshCount = 0;
   private disposeListeners: Array<() => void> = [];
 
   public reveal(viewColumn?: vscode.ViewColumn): void {
     this.isRevealed = true;
     this.revealedColumn = viewColumn;
+  }
+
+  public async refresh(): Promise<void> {
+    this.refreshCount++;
   }
 
   public onDidDispose(listener: () => void): vscode.Disposable {

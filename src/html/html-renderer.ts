@@ -6,6 +6,11 @@ import { parseRawAttributes } from '../parser/attributes-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
+import {
+  type IDiagramRenderCache,
+  DiagramRenderCache,
+  computeDiagramCacheKey,
+} from '../renderer/diagram-cache.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
 import {
   buildCompleteHtml,
@@ -35,6 +40,13 @@ export interface DiagramErrorEvent {
   cause?: unknown;
 }
 
+export interface DiagramCacheEvent {
+  type: DiagramType;
+  index: number;
+  hit: boolean;
+  key: string;
+}
+
 export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
@@ -43,12 +55,15 @@ export interface HtmlRenderOptions {
   target?: RenderTarget;
   extraHeadHtml?: string;
   onDiagramError?: (event: DiagramErrorEvent) => void;
+  onCacheEvent?: (event: DiagramCacheEvent) => void;
   resourceUrlTransformer?: (url: string) => string;
+  diagramCache?: IDiagramRenderCache;
 }
 
 export interface HtmlRendererConfig {
   mermaidRenderer?: DiagramRenderer;
   plantumlRenderer?: DiagramRenderer;
+  diagramCache?: IDiagramRenderCache;
 }
 
 /**
@@ -58,6 +73,7 @@ export interface HtmlRendererConfig {
 export class HtmlRenderer {
   private readonly renderers: Map<DiagramType, DiagramRenderer>;
   private readonly md: InstanceType<typeof MarkdownIt>;
+  private readonly defaultCache?: IDiagramRenderCache;
 
   constructor(
     mermaidRendererOrConfig?: DiagramRenderer | HtmlRendererConfig,
@@ -77,6 +93,7 @@ export class HtmlRenderer {
         'plantuml',
         mermaidRendererOrConfig.plantumlRenderer ?? new PlantUmlRenderer()
       );
+      this.defaultCache = mermaidRendererOrConfig.diagramCache;
     } else {
       this.renderers.set('mermaid', new MermaidRenderer());
       this.renderers.set('plantuml', plantumlRenderer ?? new PlantUmlRenderer());
@@ -225,6 +242,8 @@ export class HtmlRenderer {
       });
     }
 
+    const cache = options?.diagramCache ?? this.defaultCache;
+
     // Render all diagrams asynchronously
     let diagramCounter = 0;
     for (const item of pendingRenders) {
@@ -244,8 +263,33 @@ export class HtmlRenderer {
           ? { theme: docOptions.mermaid.theme }
           : undefined;
 
+      let svg: string | undefined;
+      let cacheKey: string | undefined;
+
+      if (cache) {
+        cacheKey = computeDiagramCacheKey(item.block.type, item.block.source, {
+          theme: docOptions.mermaid?.theme,
+          javaPath: docOptions.plantuml?.javaPath,
+          jarPath: docOptions.plantuml?.jarPath,
+        });
+        svg = cache.get(cacheKey);
+        if (options?.onCacheEvent) {
+          options.onCacheEvent({
+            type: item.block.type,
+            index: currentDiagramIndex,
+            hit: !!svg,
+            key: cacheKey,
+          });
+        }
+      }
+
       try {
-        const svg = await renderer.render(item.block.source, renderOptions);
+        if (!svg) {
+          svg = await renderer.render(item.block.source, renderOptions);
+          if (cache && cacheKey) {
+            cache.set(cacheKey, svg);
+          }
+        }
         const containerHtml = buildDiagramContainer(svg, item.block.options);
 
         const targetToken = tokens[item.index];
