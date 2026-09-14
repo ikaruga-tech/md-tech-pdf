@@ -63,3 +63,13 @@ export const BUILTIN_DEFAULT_DIAGRAM_OPTIONS: Readonly<ResolvedDiagramOptions> =
   fit: 'contain',
   align: 'center',
 };
+
+/**
+ * Standard page format dimensions in physical units (mm).
+ */
+export const PAGE_FORMAT_DIMENSIONS: Record<string, { width: string; height: string }> = {
+  A4: {
+    width: '210mm',
+    height: '297mm',
+  },
+} as const;

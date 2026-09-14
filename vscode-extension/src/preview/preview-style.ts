@@ -12,6 +12,17 @@ export interface PdfDocumentOptions {
 }
 
 /**
+ * Standard page format dimensions in physical units (mm).
+ * Synchronized with Core document-options.ts PAGE_FORMAT_DIMENSIONS.
+ */
+export const PAGE_FORMAT_DIMENSIONS: Record<string, { width: string; height: string }> = {
+  A4: {
+    width: '210mm',
+    height: '297mm',
+  },
+} as const;
+
+/**
  * Base styles for the Preview Webview canvas and paper sheet container.
  * Uses VS Code theme background for the canvas while maintaining a clean
  * white paper sheet layout matching the physical print appearance.
@@ -38,6 +49,7 @@ body {
   align-items: flex-start;
   background-color: var(--vscode-editor-background, #1e1e1e);
   overflow-y: auto;
+  overflow-x: auto;
 }
 
 .md-tech-pdf-preview-page {
@@ -46,6 +58,7 @@ body {
   color: #24292f;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   margin: 0 auto;
+  flex-shrink: 0;
 }
 `;
 }
@@ -58,29 +71,30 @@ export function resolvePaperDimensions(pdfOptions?: PdfDocumentOptions): {
   minHeight: string;
 } {
   const isLandscape = pdfOptions?.landscape === true;
+  const format = pdfOptions?.format ?? 'A4';
+  const baseDims = PAGE_FORMAT_DIMENSIONS[format] ?? PAGE_FORMAT_DIMENSIONS.A4;
 
-  // Currently A4 is standard
   if (isLandscape) {
     return {
-      width: '297mm',
-      minHeight: '210mm',
+      width: baseDims.height,
+      minHeight: baseDims.width,
     };
   }
 
   return {
-    width: '210mm',
-    minHeight: '297mm',
+    width: baseDims.width,
+    minHeight: baseDims.height,
   };
 }
 
 /**
- * Resolves padding from Front Matter margin settings or falls back to default 20mm.
+ * Resolves padding from Front Matter margin settings or falls back to default 15mm.
  */
 export function resolvePagePadding(pdfOptions?: PdfDocumentOptions): string {
-  const top = pdfOptions?.margin?.top ?? '20mm';
-  const right = pdfOptions?.margin?.right ?? '20mm';
-  const bottom = pdfOptions?.margin?.bottom ?? '20mm';
-  const left = pdfOptions?.margin?.left ?? '20mm';
+  const top = pdfOptions?.margin?.top ?? '15mm';
+  const right = pdfOptions?.margin?.right ?? '15mm';
+  const bottom = pdfOptions?.margin?.bottom ?? '15mm';
+  const left = pdfOptions?.margin?.left ?? '15mm';
 
   return `${top} ${right} ${bottom} ${left}`;
 }

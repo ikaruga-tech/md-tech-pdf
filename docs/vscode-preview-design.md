@@ -374,3 +374,60 @@ Phase 12（VS Code Preview機能の基礎実装）において作成・修正を
 
 - [MODIFY] `src/html/html-renderer.ts` / `src/html/html-builder.ts`: `target: 'preview'` オプションおよびプレビュー用スタイルの受け入れ機構。
 - [MODIFY] `src/index.ts`: 必要となるプレビュー補助型の公開。
+
+## 16. Phase 13 実装仕様・表示品質および Core/PDF 整合性
+
+Phase 13における品質検証およびCore/PDF整合性確立の成果と設計仕様を以下に規定します。
+
+### 16.1 CSS・タイポグラフィの共通化方針
+
+- Coreの `DEFAULT_DOCUMENT_STYLE`（`src/html/default-style.ts`）をプレビューでもそのまま全適用します。
+- これにより、Pattern Dタイポグラフィ（本文 10.5pt / 行送り 1.7、H1 20pt/700、H2 16pt/700、H3 13pt/700、H4 11.5pt/400、表ヘッダー背景 `#f0f3f6`、コードブロック 9pt / 行送り 1.5）がPreviewとPDF出力で完全に同一のCSS規則として共有されます。
+- `preview-style.ts` ではタイポグラフィ規則を重複定義せず、キャンバス背景色およびA4用紙シートのコンテナ装飾（余白、シャドウ、幅・高さ）のみを付与する責務分離を維持します。
+
+### 16.2 ナロービューポート対応方針
+
+- 課題: VS Codeのエディタ分割幅がA4用紙幅（210mm ≒ 約794px）より狭い場合、Flexboxの標準挙動により用紙シートが潰れる、または用紙の右側がクリップされる問題が生じます。
+- 対策仕様:
+  - キャンバスコンテナ（`.md-tech-pdf-preview-canvas`）に `overflow-x: auto` を指定。
+  - 用紙シートコンテナ（`.md-tech-pdf-preview-page`）に `flex-shrink: 0` を指定。
+  - これにより、エディタ幅が狭い場合でも用紙のアスペクト比や組版崩れを防ぎ、横スクロールによる完全な用紙閲覧を保証します。
+
+### 16.3 用紙フォーマットと余白の整合性
+
+- デフォルト余白の統一:
+  - Coreの `DEFAULT_PDF_OPTIONS.margin` は `15mm` で統一されています。
+  - `preview-style.ts` のデフォルトフォールバック余白を従来の `20mm` から `15mm` へ改定し、Front Matter未指定時におけるPDF出力との余白寸法の完全一致を達成しました。
+- 用紙寸法の共有:
+  - Coreの `src/config/document-options.ts` に `PAGE_FORMAT_DIMENSIONS`（A4: 幅210mm、高さ297mm）を定義・エクスポートし、Extension側と整合させています。
+
+### 16.4 画像・リンクの表示仕様と差異
+
+- リモートHTTPS画像:
+  - CSP（`img-src https: data:`）により、GitHubバッジ等の外部HTTPS画像はプレビューとPDFの双方で表示可能です。
+- ローカル相対パス画像:
+  - 現時点（Phase 13）では、Webview内のローカル相対パス画像はVS Codeセキュリティ制限のため未表示となります（Phase 15にて `asWebviewUri` 変換機構を導入予定）。
+  - 一方、PDF生成時はChromiumがローカルファイルシステムから直接読み込むため表示されます。
+- 外部リンク:
+  - プレビュー内の `<a>` タグはWebview内の直接画面遷移を行わず、VS Code既定の安全な外部ブラウザオープンに委ねられます。
+
+### 16.5 プレビューとPDFの既知の相違点
+
+| 項目 | VS Code プレビュー | PDF 出力 (Playwright) |
+| --- | --- | --- |
+| 描画エンジン | VS Code Webview (Electron Chromium) | Playwright Chromium Headless |
+| 改ページ | 連続スクロール（1つの長い用紙シート） | 物理的なページ分割（A4複数ページ） |
+| ヘッダー・フッター | 非表示（Phase 13時点） | PDF生成オプションにより付与可能 |
+| ローカル画像パス | 相対パスはPhase 15まで未解決 | ローカルパスを直接読み込み表示 |
+| フォント取得 | Webview CSP制限下でGoogle Fonts / ローカルフォント | システムフォント / Webフォント読み込み |
+
+### 16.6 パフォーマンスベースライン計測結果
+
+`tools/benchmark-preview.ts` を用いたレンダリング処理時間（HTML生成、5回実行平均）の計測値は以下の通りです。
+
+- 小型文書（`examples/preview/markdown-elements.md`、ダイアグラムなし）: 平均 1.42ms
+- 中型文書（`README.md`、表・リスト等の標準要素）: 平均 1.07ms
+- 実世界大規模文書（`examples/real-world/system-design.md`、Mermaid 1件・PlantUML 3件を含む約28KB）: 平均 12,166ms (約12.1秒)
+
+分析と考察:
+ダイアグラムを含まない純粋なMarkdownレンダリングは1〜2msと極めて高速であり、UIブロッキングの懸念はありません。一方で、複数のダイアグラムを含む文書ではPlaywrightおよびJava起動の累積コストにより約12秒を要します。このため、Phase 16で実装予定の「保存時のみの更新（`onSave`）」や「ダイアグラムキャッシュ」が快適なプレビュー体験のために極めて重要であることが確認されました。

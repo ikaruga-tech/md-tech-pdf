@@ -22,31 +22,33 @@ describe('preview-style', () => {
   });
 
   describe('resolvePagePadding', () => {
-    it('should fall back to 20mm for all sides when margin is undefined', () => {
+    it('should fall back to 15mm for all sides when margin is undefined', () => {
       const padding = resolvePagePadding();
-      assert.strictEqual(padding, '20mm 20mm 20mm 20mm');
+      assert.strictEqual(padding, '15mm 15mm 15mm 15mm');
     });
 
     it('should apply custom margins when provided in Front Matter', () => {
       const padding = resolvePagePadding({
         margin: {
-          top: '15mm',
+          top: '20mm',
           right: '25mm',
           bottom: '10mm',
           left: '30mm',
         },
       });
-      assert.strictEqual(padding, '15mm 25mm 10mm 30mm');
+      assert.strictEqual(padding, '20mm 25mm 10mm 30mm');
     });
   });
 
   describe('getPreviewBaseStyle', () => {
-    it('should include preview canvas and paper page class selectors', () => {
+    it('should include preview canvas and paper page class selectors with narrow viewport support', () => {
       const style = getPreviewBaseStyle();
       assert.match(style, /\.md-tech-pdf-preview-canvas/);
       assert.match(style, /\.md-tech-pdf-preview-page/);
       assert.match(style, /var\(--vscode-editor-background/);
       assert.match(style, /box-shadow/);
+      assert.match(style, /overflow-x:\s*auto;/);
+      assert.match(style, /flex-shrink:\s*0;/);
     });
   });
 
@@ -55,7 +57,7 @@ describe('preview-style', () => {
       const css = buildPageDimensionStyle();
       assert.match(css, /width:\s*210mm;/);
       assert.match(css, /min-height:\s*297mm;/);
-      assert.match(css, /padding:\s*20mm 20mm 20mm 20mm;/);
+      assert.match(css, /padding:\s*15mm 15mm 15mm 15mm;/);
     });
 
     it('should generate page dimension rules matching landscape with custom margins', () => {
