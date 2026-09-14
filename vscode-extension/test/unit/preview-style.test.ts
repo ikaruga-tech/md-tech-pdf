@@ -41,7 +41,7 @@ describe('preview-style', () => {
   });
 
   describe('getPreviewBaseStyle', () => {
-    it('should include preview canvas and paper page class selectors with narrow viewport support', () => {
+    it('should include preview canvas and paper page class selectors with narrow viewport and safe center support', () => {
       const style = getPreviewBaseStyle();
       assert.match(style, /\.md-tech-pdf-preview-canvas/);
       assert.match(style, /\.md-tech-pdf-preview-page/);
@@ -49,6 +49,7 @@ describe('preview-style', () => {
       assert.match(style, /box-shadow/);
       assert.match(style, /overflow-x:\s*auto;/);
       assert.match(style, /flex-shrink:\s*0;/);
+      assert.match(style, /justify-content:\s*safe center;/);
     });
   });
 

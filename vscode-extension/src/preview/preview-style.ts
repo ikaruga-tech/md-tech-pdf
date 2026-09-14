@@ -45,7 +45,7 @@ body {
   min-height: 100vh;
   padding: 24px 16px;
   display: flex;
-  justify-content: center;
+  justify-content: safe center;
   align-items: flex-start;
   background-color: var(--vscode-editor-background, #1e1e1e);
   overflow-y: auto;
