@@ -13,7 +13,7 @@ export interface DocumentBuildOptions {
   extraHeadHtml?: string;
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -60,6 +60,38 @@ export function buildDiagramContainer(svg: string, options: DiagramOptions): str
     `<div class="md-tech-diagram ${alignClass} ${fitClass}"${inlineStyle}>`,
     '  <div class="md-tech-diagram-content">',
     `    ${adjustedSvg}`,
+    '  </div>',
+    '</div>',
+  ].join('\n');
+}
+
+/**
+ * Builds a secure, gracefully degraded error box container for failed diagrams.
+ */
+export function buildDiagramErrorContainer(
+  type: string,
+  errorMessage: string,
+  options?: DiagramOptions
+): string {
+  const styles: string[] = [];
+
+  if (options?.width) {
+    styles.push(`width: ${options.width};`);
+  }
+
+  if (options?.height) {
+    styles.push(`height: ${options.height};`);
+  }
+
+  const inlineStyle = styles.length > 0 ? ` style="${styles.join(' ')}"` : '';
+  const alignClass = options?.align ? ` md-tech-diagram-align-${options.align}` : '';
+  const typeLabel = type === 'plantuml' ? 'PlantUML' : type === 'mermaid' ? 'Mermaid' : type;
+
+  return [
+    `<div class="md-tech-diagram md-tech-diagram-error${alignClass}"${inlineStyle}>`,
+    '  <div class="md-tech-diagram-error-card">',
+    `    <div class="md-tech-diagram-error-title">${escapeHtml(typeLabel)} diagram rendering failed</div>`,
+    `    <div class="md-tech-diagram-error-message">${escapeHtml(errorMessage)}</div>`,
     '  </div>',
     '</div>',
   ].join('\n');

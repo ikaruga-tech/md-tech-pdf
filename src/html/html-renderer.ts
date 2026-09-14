@@ -10,10 +10,20 @@ import type { DiagramBlock, DiagramType } from '../types/diagram.js';
 import {
   buildCompleteHtml,
   buildDiagramContainer,
+  buildDiagramErrorContainer,
   type RenderTarget,
 } from './html-builder.js';
 
 export type { RenderTarget };
+
+export interface DiagramErrorEvent {
+  type: DiagramType;
+  index: number;
+  line?: number;
+  message: string;
+  source: string;
+  cause?: unknown;
+}
 
 export interface HtmlRenderOptions {
   title?: string;
@@ -22,6 +32,7 @@ export interface HtmlRenderOptions {
   defaultOptions?: DocumentOptions;
   target?: RenderTarget;
   extraHeadHtml?: string;
+  onDiagramError?: (event: DiagramErrorEvent) => void;
 }
 
 export interface HtmlRendererConfig {
@@ -183,7 +194,10 @@ export class HtmlRenderer {
     }
 
     // Render all diagrams asynchronously
+    let diagramCounter = 0;
     for (const item of pendingRenders) {
+      diagramCounter++;
+      const currentDiagramIndex = diagramCounter;
       const renderer =
         item.block.type === 'plantuml' && plantumlRenderer
           ? plantumlRenderer
@@ -198,13 +212,45 @@ export class HtmlRenderer {
           ? { theme: docOptions.mermaid.theme }
           : undefined;
 
-      const svg = await renderer.render(item.block.source, renderOptions);
-      const containerHtml = buildDiagramContainer(svg, item.block.options);
+      try {
+        const svg = await renderer.render(item.block.source, renderOptions);
+        const containerHtml = buildDiagramContainer(svg, item.block.options);
 
-      const targetToken = tokens[item.index];
-      targetToken.type = 'html_block';
-      targetToken.content = containerHtml;
-      targetToken.children = null;
+        const targetToken = tokens[item.index];
+        targetToken.type = 'html_block';
+        targetToken.content = containerHtml;
+        targetToken.children = null;
+      } catch (err: unknown) {
+        if (options?.target === 'preview') {
+          const rawMsg = err instanceof Error ? err.message : String(err);
+          // Strip verbose/stack details for preview UI
+          const userMsg = rawMsg.split('\n')[0].replace(/^Error:\s*/, '');
+          const errorHtml = buildDiagramErrorContainer(
+            item.block.type,
+            userMsg,
+            item.block.options
+          );
+
+          const targetToken = tokens[item.index];
+          targetToken.type = 'html_block';
+          targetToken.content = errorHtml;
+          targetToken.children = null;
+
+          if (options?.onDiagramError) {
+            options.onDiagramError({
+              type: item.block.type,
+              index: currentDiagramIndex,
+              line: item.block.line,
+              message: rawMsg,
+              source: item.block.source,
+              cause: err,
+            });
+          }
+        } else {
+          // For PDF generation, preserve strict behavior: throw error to fail document generation
+          throw err;
+        }
+      }
     }
 
     // Render Markdown AST with transformed diagram tokens to HTML body

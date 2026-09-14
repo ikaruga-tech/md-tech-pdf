@@ -22,6 +22,15 @@ export function resolveLocalResourceRoots(documentUri: vscode.Uri): vscode.Uri[]
   return [vscode.Uri.file(path.dirname(documentUri.fsPath))];
 }
 
+let previewOutputChannel: vscode.OutputChannel | undefined;
+
+export function getPreviewOutputChannel(): vscode.OutputChannel {
+  if (!previewOutputChannel) {
+    previewOutputChannel = vscode.window.createOutputChannel('md-tech-pdf');
+  }
+  return previewOutputChannel;
+}
+
 /**
  * Manages an individual WebviewPanel for a Markdown document preview.
  * Encapsulates Core HtmlRenderer invocation, error handling, and lifecycle.
@@ -33,15 +42,19 @@ export class PreviewPanel implements vscode.Disposable {
   private readonly documentUri: vscode.Uri;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly onDisposeEmitter = new vscode.EventEmitter<void>();
+  private readonly outputChannel: vscode.OutputChannel;
+  private hasWarnedDiagramError = false;
 
   public readonly onDidDispose = this.onDisposeEmitter.event;
 
   private constructor(
     panel: vscode.WebviewPanel,
-    documentUri: vscode.Uri
+    documentUri: vscode.Uri,
+    outputChannel?: vscode.OutputChannel
   ) {
     this.panel = panel;
     this.documentUri = documentUri;
+    this.outputChannel = outputChannel ?? getPreviewOutputChannel();
 
     this.panel.onDidDispose(
       () => {
@@ -152,6 +165,7 @@ export class PreviewPanel implements vscode.Disposable {
         buildPageDimensionStyle(docOptions.pdf),
       ].join('\n');
 
+      let diagramErrorCount = 0;
       const renderer = new HtmlRenderer();
       const html = await renderer.render(markdownContent, {
         title: baseName,
@@ -161,9 +175,27 @@ export class PreviewPanel implements vscode.Disposable {
         defaultOptions: {
           plantuml: extSettings.plantuml,
         },
+        onDiagramError: (event) => {
+          diagramErrorCount++;
+          const typeName = event.type === 'plantuml' ? 'PlantUML' : 'Mermaid';
+          const lineInfo = event.line ? ` (line ${event.line})` : '';
+          this.outputChannel.appendLine(
+            `[${typeName}] Document: ${path.basename(this.documentUri.fsPath)}${lineInfo}`
+          );
+          this.outputChannel.appendLine(`Diagram #${event.index} rendering error:`);
+          this.outputChannel.appendLine(event.message.trim());
+          this.outputChannel.appendLine('----------------------------------------');
+        },
       });
 
       this.panel.webview.html = html;
+
+      if (diagramErrorCount > 0 && !this.hasWarnedDiagramError) {
+        this.hasWarnedDiagramError = true;
+        void vscode.window.showWarningMessage(
+          'md-tech-pdf: Some diagrams could not be rendered. See "md-tech-pdf" Output for details.'
+        );
+      }
     } catch (error: unknown) {
       console.error('[md-tech-pdf] Preview rendering failed', error);
       this.showError(error);

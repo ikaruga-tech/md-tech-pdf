@@ -279,4 +279,36 @@ hr {
   height: 100%;
   object-fit: fill;
 }
+
+/* Diagram Error State */
+.md-tech-diagram-error {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.md-tech-diagram-error-card {
+  box-sizing: border-box;
+  background-color: #fff8f7;
+  border: 1px dashed #d1242f;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  color: #24292f;
+  text-align: left;
+}
+
+.md-tech-diagram-error-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #cf222e;
+  margin-bottom: 0.4rem;
+}
+
+.md-tech-diagram-error-message {
+  font-family: var(--font-mono);
+  font-size: 85%;
+  line-height: 1.5;
+  color: #57606a;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 `;

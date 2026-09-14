@@ -16,6 +16,15 @@ const mockVscode = {
   window: {
     createWebviewPanel: () => ({}),
     showErrorMessage: async () => undefined,
+    showWarningMessage: async () => undefined,
+    createOutputChannel: (_name: string) => ({
+      appendLine: (_line: string) => {},
+      append: (_value: string) => {},
+      clear: () => {},
+      show: () => {},
+      hide: () => {},
+      dispose: () => {},
+    }),
   },
   ViewColumn: {
     Beside: -2,

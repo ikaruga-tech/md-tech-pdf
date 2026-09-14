@@ -436,3 +436,51 @@ Phase 13における品質検証およびCore/PDF整合性確立の成果と設�
 
 分析と考察:
 ダイアグラムを含まない純粋なMarkdownレンダリングは1〜2msと極めて高速であり、UIブロッキングの懸念はありません。一方で、複数のダイアグラムを含む文書ではPlaywrightおよびJava起動の累積コストにより約12秒を要します。このため、Phase 16で実装予定の「保存時のみの更新（`onSave`）」や「ダイアグラムキャッシュ」が快適なプレビュー体験のために極めて重要であることが確認されました。
+
+## 17. Phase 14 実装仕様・Diagram Preview 統合とエラー UX の確立
+
+Phase 14におけるダイアグラム描画統合、エラー回復設計、および将来のキャッシュ境界仕様を以下に規定します。
+
+### 17.1 ダイアグラムレンダリングアーキテクチャ
+
+- Markdown内のフェンスブロック（`mermaid`, `plantuml`）は、Coreの `HtmlRenderer` によって検出され、既存の `MermaidRenderer` / `PlantUmlRenderer` を再利用してベクターSVGへ事前変換されます。
+- Webview側でJavaScriptを実行せず、完成したインライン `<svg>` をHTMLボディに埋め込むことで、堅牢なCSP（`enableScripts: false`）とPDF出力との完全なレンダリング整合性を維持します。
+
+### 17.2 部分エラー回復ポリシー（Preview vs PDF）
+
+- Previewモード（`target: 'preview'`）:
+  - 1つのダイアグラムで構文エラーやプロセス実行失敗が発生しても、文書全体のプレビュー生成を中断しません。
+  - 失敗したダイアグラムの位置に、赤系破線枠で囲まれた `md-tech-diagram-error` コンテナを生成・配置します。
+  - エラーボックス内には、HTMLエスケープ処理を施した簡潔なメッセージ（1行目）のみを表示し、スタックトレースや内部一時ファイルパスの露出を防止します。
+  - 前後の段落、見出し、および他の正常なダイアグラムは完全な状態で維持されます。
+- PDFモード（`target: 'pdf'`、既定）:
+  - 成果物の厳密性を担保するため、ダイアグラム描画失敗時は従来通り `DiagramRenderError` をスローし、不完全なPDF出力を抑止します（v0.2.0既存動作の完全維持）。
+
+### 17.3 Output Channel 連携と通知制御
+
+- VS Code拡張側に `OutputChannel`（`md-tech-pdf`）を導入。
+- `HtmlRenderer` の `onDiagramError` コールバックを購読し、エラー発生時に以下の構造化ログを出力します：
+
+```text
+[Mermaid] Document: system-design.md (line 57)
+Diagram #1 rendering error:
+Parse error on line 3: ...
+----------------------------------------
+```
+
+- ダイアグラム毎のトースト通知（スパム）は避け、プレビュー表示後に控えめな警告通知を1度だけ表示します。
+
+### 17.4 将来のキャッシュ境界（Phase 16 設計方針）
+
+- ダイアグラム実行（Playwright / Java起動）は1回あたり数百ms〜数秒を要するため、Phase 16での高速化に向けて以下のキー設計を想定します：
+  - キー構造: `SHA-256(diagram_type + diagram_source + normalized_options)`
+  - 入力ソースとオプションが同一である限り、前回の生成済みSVGを再利用するキャッシュ境界を `HtmlRenderer` または各Rendererの直前に配置可能な構造として整理しました。
+
+### 17.5 Phase 14 パフォーマンス再計測結果
+
+`examples/real-world/system-design.md` におけるレンダリング処理時間（5回実行平均）:
+
+- Phase 13 ベースライン: 12,166ms
+- Phase 14 計測値: 12,448ms
+
+パフォーマンスの大幅な劣化はなく、同等水準を維持していることを確認しました。
