@@ -4,11 +4,31 @@
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
   "version": "0.2.0",
   "publisher": "ikaruga-tech",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ikaruga-tech/md-tech-pdf.git"
+  },
+  "homepage": "https://github.com/ikaruga-tech/md-tech-pdf#readme",
+  "bugs": {
+    "url": "https://github.com/ikaruga-tech/md-tech-pdf/issues"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "markdown",
+    "pdf",
+    "mermaid",
+    "plantuml",
+    "diagram",
+    "export",
+    "documentation",
+    "technical-document"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -72,10 +92,11 @@
     "pretest:extension": "npm run build && npm run compile:tests",
     "test:extension": "vscode-test",
     "pretest": "npm run build && npm run compile:tests",
-    "test": "npm run test:unit && npm run test:extension"
+    "test": "npm run test:unit && npm run test:extension",
+    "package:vsix": "vsce package"
   },
   "dependencies": {
-    "md-tech-pdf": "file:.."
+    "md-tech-pdf": "file:../md-tech-pdf-0.1.0.tgz"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -83,6 +104,7 @@
     "@types/vscode": "^1.90.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
     "typescript": "^5.8.0"
   }
 }

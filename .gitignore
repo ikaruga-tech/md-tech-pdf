@@ -67,6 +67,8 @@ ms-playwright/
 /tmp/
 /temp/
 .cache/
+scratch/
+*.vsix
 
 # macOS
 .DS_Store

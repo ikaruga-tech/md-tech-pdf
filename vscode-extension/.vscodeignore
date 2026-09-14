@@ -6,4 +6,3 @@ tsconfig.test.json
 .vscode-test*
 out/**
 **/*.map
-node_modules/**
