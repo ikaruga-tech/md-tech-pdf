@@ -251,4 +251,134 @@ Server --> Client: API Response
     expect(html).toContain('overflow-wrap: anywhere;');
     expect(html).toContain('table-layout: auto;');
   });
+
+  describe('Diagram Error Handling & Partial Recovery', () => {
+    const brokenMermaidMarkdown = `
+# Document Title
+
+Intro paragraph.
+
+\`\`\`mermaid
+this is an invalid mermaid syntax !!!
+\`\`\`
+
+Conclusion paragraph.
+`;
+
+    it('should throw DiagramRenderError when target is pdf or undefined', async () => {
+      await expect(renderer.render(brokenMermaidMarkdown)).rejects.toThrow();
+      await expect(
+        renderer.render(brokenMermaidMarkdown, { target: 'pdf' })
+      ).rejects.toThrow();
+    });
+
+    it('should recover gracefully and embed error container without failing document when target is preview', async () => {
+      const errorEvents: Array<{ type: string; index: number; message: string }> = [];
+
+      const html = await renderer.render(brokenMermaidMarkdown, {
+        target: 'preview',
+        onDiagramError: (ev) => {
+          errorEvents.push({
+            type: ev.type,
+            index: ev.index,
+            message: ev.message,
+          });
+        },
+      });
+
+      // Entire document must still be intact
+      expect(html).toContain('<h1>Document Title</h1>');
+      expect(html).toContain('<p>Intro paragraph.</p>');
+      expect(html).toContain('<p>Conclusion paragraph.</p>');
+
+      // Error container must be rendered
+      expect(html).toContain('md-tech-diagram-error');
+      expect(html).toContain('Mermaid diagram rendering failed');
+
+      // Callback must have received the error event
+      expect(errorEvents.length).toBe(1);
+      expect(errorEvents[0].type).toBe('mermaid');
+      expect(errorEvents[0].index).toBe(1);
+    });
+
+    it('should render multiple diagrams where valid ones succeed even if one fails in preview mode', async () => {
+      const mixedMarkdown = `
+# Mixed Diagrams
+
+\`\`\`mermaid
+flowchart TD
+  A[Node A] --> B[Node B]
+\`\`\`
+
+\`\`\`mermaid
+invalid broken syntax ???
+\`\`\`
+`;
+
+      const html = await renderer.render(mixedMarkdown, {
+        target: 'preview',
+      });
+
+      expect(html).toContain('<h1>Mixed Diagrams</h1>');
+      // First diagram should have succeeded with SVG
+      expect(html).toContain('<svg');
+      expect(html).toContain('Node A');
+      // Second diagram should have failed with error box
+      expect(html).toContain('md-tech-diagram-error');
+      expect(html).toContain('Mermaid diagram rendering failed');
+    });
+  });
+
+  describe('resourceUrlTransformer', () => {
+    it('should transform Markdown image src using provided callback', async () => {
+      const markdown = `
+# Image Test
+
+![Local Image](./images/sample.png "Sample Title")
+![Remote Image](https://example.com/logo.svg)
+`;
+      const transformedUrls: string[] = [];
+      const html = await renderer.render(markdown, {
+        resourceUrlTransformer: (url) => {
+          transformedUrls.push(url);
+          if (url.startsWith('./')) {
+            return `vscode-webview://transformed/${url.slice(2)}`;
+          }
+          return url;
+        },
+      });
+
+      expect(transformedUrls).toEqual([
+        './images/sample.png',
+        'https://example.com/logo.svg',
+      ]);
+      expect(html).toContain(
+        '<img src="vscode-webview://transformed/images/sample.png" alt="Local Image" title="Sample Title">'
+      );
+      expect(html).toContain('<img src="https://example.com/logo.svg" alt="Remote Image">');
+    });
+
+    it('should transform raw HTML img tags while preserving other attributes', async () => {
+      const markdown = `
+# Raw HTML Image
+
+<img src="./assets/chart.png" width="400" height="300" alt="Chart">
+`;
+      const html = await renderer.render(markdown, {
+        resourceUrlTransformer: (url) => `https://transformed.local/${url}`,
+      });
+
+      expect(html).toContain(
+        '<img src="https://transformed.local/./assets/chart.png" width="400" height="300" alt="Chart">'
+      );
+    });
+
+    it('should preserve original image src when no resourceUrlTransformer is provided', async () => {
+      const markdown = '![Default](./images/sample.png)';
+      const html = await renderer.render(markdown);
+
+      expect(html).toContain('<img src="./images/sample.png" alt="Default">');
+    });
+  });
 });
+

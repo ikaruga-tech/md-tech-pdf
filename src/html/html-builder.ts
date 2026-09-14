@@ -3,13 +3,17 @@ import type { DiagramFit, DiagramOptions } from '../types/diagram.js';
 import { DEFAULT_DOCUMENT_STYLE } from './default-style.js';
 import { buildFontFamilyCss, buildGoogleFontsUrl } from './google-fonts.js';
 
+export type RenderTarget = 'pdf' | 'preview';
+
 export interface DocumentBuildOptions {
   title?: string;
   customCss?: string;
   fontOptions?: FontOptions;
+  target?: RenderTarget;
+  extraHeadHtml?: string;
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -62,6 +66,38 @@ export function buildDiagramContainer(svg: string, options: DiagramOptions): str
 }
 
 /**
+ * Builds a secure, gracefully degraded error box container for failed diagrams.
+ */
+export function buildDiagramErrorContainer(
+  type: string,
+  errorMessage: string,
+  options?: DiagramOptions
+): string {
+  const styles: string[] = [];
+
+  if (options?.width) {
+    styles.push(`width: ${options.width};`);
+  }
+
+  if (options?.height) {
+    styles.push(`height: ${options.height};`);
+  }
+
+  const inlineStyle = styles.length > 0 ? ` style="${styles.join(' ')}"` : '';
+  const alignClass = options?.align ? ` md-tech-diagram-align-${options.align}` : '';
+  const typeLabel = type === 'plantuml' ? 'PlantUML' : type === 'mermaid' ? 'Mermaid' : type;
+
+  return [
+    `<div class="md-tech-diagram md-tech-diagram-error${alignClass}"${inlineStyle}>`,
+    '  <div class="md-tech-diagram-error-card">',
+    `    <div class="md-tech-diagram-error-title">${escapeHtml(typeLabel)} diagram rendering failed</div>`,
+    `    <div class="md-tech-diagram-error-message">${escapeHtml(errorMessage)}</div>`,
+    '  </div>',
+    '</div>',
+  ].join('\n');
+}
+
+/**
  * Wraps rendered HTML body into a complete HTML5 document.
  */
 export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOptions): string {
@@ -90,6 +126,7 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
   const fontCss = fontStyleRules.length > 0 ? fontStyleRules.join('\n') : '';
 
   const headContent = [
+    ...(options?.extraHeadHtml ? [options.extraHeadHtml] : []),
     '  <meta charset="UTF-8">',
     '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
     `  <title>${escapeHtml(title)}</title>`,
@@ -101,6 +138,17 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
     '  </style>',
   ].join('\n');
 
+  const isPreview = options?.target === 'preview';
+  const finalBodyContent = isPreview
+    ? [
+        '<div class="md-tech-pdf-preview-canvas">',
+        '  <main class="md-tech-pdf-preview-page">',
+        bodyContent,
+        '  </main>',
+        '</div>',
+      ].join('\n')
+    : bodyContent;
+
   return [
     '<!DOCTYPE html>',
     '<html lang="ja">',
@@ -108,7 +156,7 @@ export function buildCompleteHtml(bodyContent: string, options?: DocumentBuildOp
     headContent,
     '</head>',
     '<body>',
-    bodyContent,
+    finalBodyContent,
     '</body>',
     '</html>',
     '',

@@ -20,8 +20,13 @@ describe('error-utils', () => {
       assert.strictEqual(getErrorMessage(undefined), 'undefined');
     });
 
-    it('should stringify plain object', () => {
-      assert.strictEqual(getErrorMessage({ message: 'custom' }), '[object Object]');
+    it('should extract only the first line for multiline error messages', () => {
+      const multilineError = new Error('Primary error message\n  at /path/to/file.ts:12:34\n  at processTicks');
+      assert.strictEqual(getErrorMessage(multilineError), 'Primary error message');
+    });
+
+    it('should return fallback message for empty error', () => {
+      assert.strictEqual(getErrorMessage(new Error('')), 'An unknown error occurred.');
     });
   });
 });

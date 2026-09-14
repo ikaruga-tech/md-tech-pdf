@@ -26,5 +26,8 @@ export function getExtensionSettings(): ExtensionSettings {
       outputDirectory: config.get<string>('export.outputDirectory'),
       afterExport: config.get<string>('export.afterExport'),
     },
+    preview: {
+      refresh: config.get<string>('preview.refresh'),
+    },
   });
 }

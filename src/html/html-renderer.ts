@@ -6,19 +6,64 @@ import { parseRawAttributes } from '../parser/attributes-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
+import {
+  type IDiagramRenderCache,
+  DiagramRenderCache,
+  computeDiagramCacheKey,
+} from '../renderer/diagram-cache.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
-import { buildCompleteHtml, buildDiagramContainer } from './html-builder.js';
+import {
+  buildCompleteHtml,
+  buildDiagramContainer,
+  buildDiagramErrorContainer,
+  type RenderTarget,
+} from './html-builder.js';
+
+export type { RenderTarget };
+
+/**
+ * Replaces image src attributes within raw HTML snippets safely.
+ */
+function replaceImgSrc(html: string, transform: (url: string) => string): string {
+  return html.replace(
+    /(<img\b[^>]*?\bsrc\s*=\s*)(['"])(.*?)\2/gi,
+    (_match, prefix, quote, src) => `${prefix}${quote}${transform(src)}${quote}`
+  );
+}
+
+export interface DiagramErrorEvent {
+  type: DiagramType;
+  index: number;
+  line?: number;
+  message: string;
+  source: string;
+  cause?: unknown;
+}
+
+export interface DiagramCacheEvent {
+  type: DiagramType;
+  index: number;
+  hit: boolean;
+  key: string;
+}
 
 export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
   documentOptions?: DocumentOptions;
   defaultOptions?: DocumentOptions;
+  target?: RenderTarget;
+  extraHeadHtml?: string;
+  onDiagramError?: (event: DiagramErrorEvent) => void;
+  onCacheEvent?: (event: DiagramCacheEvent) => void;
+  resourceUrlTransformer?: (url: string) => string;
+  diagramCache?: IDiagramRenderCache;
 }
 
 export interface HtmlRendererConfig {
   mermaidRenderer?: DiagramRenderer;
   plantumlRenderer?: DiagramRenderer;
+  diagramCache?: IDiagramRenderCache;
 }
 
 /**
@@ -28,6 +73,7 @@ export interface HtmlRendererConfig {
 export class HtmlRenderer {
   private readonly renderers: Map<DiagramType, DiagramRenderer>;
   private readonly md: InstanceType<typeof MarkdownIt>;
+  private readonly defaultCache?: IDiagramRenderCache;
 
   constructor(
     mermaidRendererOrConfig?: DiagramRenderer | HtmlRendererConfig,
@@ -47,6 +93,7 @@ export class HtmlRenderer {
         'plantuml',
         mermaidRendererOrConfig.plantumlRenderer ?? new PlantUmlRenderer()
       );
+      this.defaultCache = mermaidRendererOrConfig.diagramCache;
     } else {
       this.renderers.set('mermaid', new MermaidRenderer());
       this.renderers.set('plantuml', plantumlRenderer ?? new PlantUmlRenderer());
@@ -121,6 +168,27 @@ export class HtmlRenderer {
 
     const tokens = this.md.parse(markdownBody, {});
 
+    // Transform resource URLs (e.g. local image src) if a transformer hook is provided
+    if (options?.resourceUrlTransformer) {
+      const transformUrl = options.resourceUrlTransformer;
+      for (const token of tokens) {
+        if (token.type === 'inline' && token.children) {
+          for (const child of token.children) {
+            if (child.type === 'image') {
+              const src = child.attrGet('src');
+              if (typeof src === 'string') {
+                child.attrSet('src', transformUrl(src));
+              }
+            } else if (child.type === 'html_inline') {
+              child.content = replaceImgSrc(child.content, transformUrl);
+            }
+          }
+        } else if (token.type === 'html_block') {
+          token.content = replaceImgSrc(token.content, transformUrl);
+        }
+      }
+    }
+
     // Collect all diagram fence tokens (mermaid, plantuml) to render asynchronously
     const pendingRenders: Array<{
       index: number;
@@ -174,8 +242,13 @@ export class HtmlRenderer {
       });
     }
 
+    const cache = options?.diagramCache ?? this.defaultCache;
+
     // Render all diagrams asynchronously
+    let diagramCounter = 0;
     for (const item of pendingRenders) {
+      diagramCounter++;
+      const currentDiagramIndex = diagramCounter;
       const renderer =
         item.block.type === 'plantuml' && plantumlRenderer
           ? plantumlRenderer
@@ -190,13 +263,70 @@ export class HtmlRenderer {
           ? { theme: docOptions.mermaid.theme }
           : undefined;
 
-      const svg = await renderer.render(item.block.source, renderOptions);
-      const containerHtml = buildDiagramContainer(svg, item.block.options);
+      let svg: string | undefined;
+      let cacheKey: string | undefined;
 
-      const targetToken = tokens[item.index];
-      targetToken.type = 'html_block';
-      targetToken.content = containerHtml;
-      targetToken.children = null;
+      if (cache) {
+        cacheKey = computeDiagramCacheKey(item.block.type, item.block.source, {
+          theme: docOptions.mermaid?.theme,
+          javaPath: docOptions.plantuml?.javaPath,
+          jarPath: docOptions.plantuml?.jarPath,
+        });
+        svg = cache.get(cacheKey);
+        if (options?.onCacheEvent) {
+          options.onCacheEvent({
+            type: item.block.type,
+            index: currentDiagramIndex,
+            hit: !!svg,
+            key: cacheKey,
+          });
+        }
+      }
+
+      try {
+        if (!svg) {
+          svg = await renderer.render(item.block.source, renderOptions);
+          if (cache && cacheKey) {
+            cache.set(cacheKey, svg);
+          }
+        }
+        const containerHtml = buildDiagramContainer(svg, item.block.options);
+
+        const targetToken = tokens[item.index];
+        targetToken.type = 'html_block';
+        targetToken.content = containerHtml;
+        targetToken.children = null;
+      } catch (err: unknown) {
+        if (options?.target === 'preview') {
+          const rawMsg = err instanceof Error ? err.message : String(err);
+          // Strip verbose/stack details for preview UI
+          const userMsg = rawMsg.split('\n')[0].replace(/^Error:\s*/, '');
+          const errorHtml = buildDiagramErrorContainer(
+            item.block.type,
+            userMsg,
+            item.block.options
+          );
+
+          const targetToken = tokens[item.index];
+          targetToken.type = 'html_block';
+          targetToken.content = errorHtml;
+          targetToken.children = null;
+
+          if (options?.onDiagramError) {
+            options.onDiagramError({
+              type: item.block.type,
+              index: currentDiagramIndex,
+              line: item.block.line,
+              message: rawMsg,
+              source: item.block.source,
+              cause: err,
+            });
+          }
+        } else {
+          // For PDF generation, preserve strict behavior: throw error to fail document generation
+          throw err;
+        }
+      }
     }
 
     // Render Markdown AST with transformed diagram tokens to HTML body

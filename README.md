@@ -6,12 +6,13 @@ An open-source technical document PDF generator from Markdown with flexible, pri
 
 Unlike conventional Markdown-to-PDF converters that treat diagrams as fixed raster images or apply crude page scaling, **md-tech-pdf** renders Mermaid and PlantUML diagrams as crisp vector SVGs with independent width and height control, custom aspect ratio fitting (`fit=contain` / `fill`), and alignment (`left` / `center` / `right`).
 
-While future editor integrations (such as a VS Code extension) are planned, the core PDF generation engine is architected as an independent, decoupled library suitable for automated documentation pipelines and CLI workflows.
+In addition to the standalone CLI and core library for automated documentation pipelines, an official [VS Code Extension](./vscode-extension) provides real-time print previews and direct PDF export within the editor.
 
 ---
 
 ## Features
 
+- **VS Code Extension & Live Print Preview**: Real-time side-by-side print preview matching target paper dimensions with high-speed in-memory diagram caching.
 - **Markdown to High-Quality Vector PDF**: Precise rendering engine built on headless Playwright Chromium.
 - **Mermaid & PlantUML Support**: Inline vector SVG rendering for flowcharts, sequence diagrams, architecture maps, and class diagrams.
 - **Independent Diagram Sizing**: Precise control over diagram `width` and `height` using real-world physical units (`mm`, `cm`, `in`) or digital units (`px`, `pt`, `%`).

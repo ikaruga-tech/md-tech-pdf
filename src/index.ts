@@ -13,6 +13,7 @@ export * from './renderer/mermaid-executor.js';
 export * from './renderer/plantuml-renderer.js';
 export * from './renderer/plantuml-executor.js';
 export * from './renderer/error.js';
+export * from './renderer/diagram-cache.js';
 export * from './html/default-style.js';
 export * from './html/google-fonts.js';
 export * from './html/html-builder.js';

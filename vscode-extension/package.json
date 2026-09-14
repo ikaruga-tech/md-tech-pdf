@@ -2,7 +2,7 @@
   "name": "md-tech-pdf",
   "displayName": "md-tech-pdf",
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "ikaruga-tech",
   "license": "Apache-2.0",
   "repository": {
@@ -34,6 +34,10 @@
   "contributes": {
     "commands": [
       {
+        "command": "md-tech-pdf.openPreview",
+        "title": "md-tech-pdf: Open Preview"
+      },
+      {
         "command": "md-tech-pdf.exportPdf",
         "title": "md-tech-pdf: Export to PDF"
       },
@@ -43,7 +47,19 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "md-tech-pdf.openPreview",
+          "when": "resourceExtname == .md || resourceExtname == .markdown",
+          "group": "navigation"
+        }
+      ],
       "explorer/context": [
+        {
+          "command": "md-tech-pdf.openPreview",
+          "when": "resourceExtname == .md || resourceExtname == .markdown",
+          "group": "navigation@90"
+        },
         {
           "command": "md-tech-pdf.exportPdf",
           "when": "resourceExtname == .md || resourceExtname == .markdown",
@@ -78,6 +94,16 @@
           ],
           "default": "none",
           "description": "Action to perform automatically after a successful PDF export."
+        },
+        "md-tech-pdf.preview.refresh": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "onSave",
+            "onType"
+          ],
+          "default": "onSave",
+          "description": "Controls when an open md-tech-pdf preview is refreshed."
         }
       }
     }
