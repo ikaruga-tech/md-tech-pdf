@@ -4,6 +4,7 @@ import { type ExtensionSettings, getExtensionSettings } from '../config/extensio
 import { getErrorMessage } from '../utils/error-utils.js';
 import { buildPreviewCsp } from './csp-builder.js';
 import { buildPageDimensionStyle, getPreviewBaseStyle } from './preview-style.js';
+import { createResourceUrlTransformer } from './resource-resolver.js';
 
 function escapeHtml(text: string): string {
   return text
@@ -16,10 +17,18 @@ function escapeHtml(text: string): string {
 
 /**
  * Resolves local resource roots according to Least Privilege principle.
- * Limits file access strictly to the directory containing the Markdown document.
+ * Limits file access to the directory containing the Markdown document,
+ * plus the workspace folder root if the document belongs to a workspace (allowing relative parent assets within workspace).
  */
 export function resolveLocalResourceRoots(documentUri: vscode.Uri): vscode.Uri[] {
-  return [vscode.Uri.file(path.dirname(documentUri.fsPath))];
+  const docDirUri = vscode.Uri.file(path.dirname(documentUri.fsPath));
+  if (documentUri.scheme === 'file') {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(documentUri);
+    if (workspaceFolder) {
+      return [docDirUri, workspaceFolder.uri];
+    }
+  }
+  return [docDirUri];
 }
 
 let previewOutputChannel: vscode.OutputChannel | undefined;
@@ -165,6 +174,12 @@ export class PreviewPanel implements vscode.Disposable {
         buildPageDimensionStyle(docOptions.pdf),
       ].join('\n');
 
+      const resourceUrlTransformer = createResourceUrlTransformer(
+        this.documentUri,
+        this.panel.webview,
+        this.outputChannel
+      );
+
       let diagramErrorCount = 0;
       const renderer = new HtmlRenderer();
       const html = await renderer.render(markdownContent, {
@@ -172,6 +187,7 @@ export class PreviewPanel implements vscode.Disposable {
         customCss,
         extraHeadHtml: cspTag,
         target: 'preview',
+        resourceUrlTransformer,
         defaultOptions: {
           plantuml: extSettings.plantuml,
         },

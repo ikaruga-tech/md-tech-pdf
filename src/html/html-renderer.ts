@@ -16,6 +16,16 @@ import {
 
 export type { RenderTarget };
 
+/**
+ * Replaces image src attributes within raw HTML snippets safely.
+ */
+function replaceImgSrc(html: string, transform: (url: string) => string): string {
+  return html.replace(
+    /(<img\b[^>]*?\bsrc\s*=\s*)(['"])(.*?)\2/gi,
+    (_match, prefix, quote, src) => `${prefix}${quote}${transform(src)}${quote}`
+  );
+}
+
 export interface DiagramErrorEvent {
   type: DiagramType;
   index: number;
@@ -33,6 +43,7 @@ export interface HtmlRenderOptions {
   target?: RenderTarget;
   extraHeadHtml?: string;
   onDiagramError?: (event: DiagramErrorEvent) => void;
+  resourceUrlTransformer?: (url: string) => string;
 }
 
 export interface HtmlRendererConfig {
@@ -139,6 +150,27 @@ export class HtmlRenderer {
     }
 
     const tokens = this.md.parse(markdownBody, {});
+
+    // Transform resource URLs (e.g. local image src) if a transformer hook is provided
+    if (options?.resourceUrlTransformer) {
+      const transformUrl = options.resourceUrlTransformer;
+      for (const token of tokens) {
+        if (token.type === 'inline' && token.children) {
+          for (const child of token.children) {
+            if (child.type === 'image') {
+              const src = child.attrGet('src');
+              if (typeof src === 'string') {
+                child.attrSet('src', transformUrl(src));
+              }
+            } else if (child.type === 'html_inline') {
+              child.content = replaceImgSrc(child.content, transformUrl);
+            }
+          }
+        } else if (token.type === 'html_block') {
+          token.content = replaceImgSrc(token.content, transformUrl);
+        }
+      }
+    }
 
     // Collect all diagram fence tokens (mermaid, plantuml) to render asynchronously
     const pendingRenders: Array<{

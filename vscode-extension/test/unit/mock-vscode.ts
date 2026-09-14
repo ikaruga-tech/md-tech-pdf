@@ -9,6 +9,25 @@ const mockVscode = {
       scheme: 'file',
       toString: () => `file://${fsPath}`,
     }),
+    parse: (value: string) => {
+      if (value.startsWith('file://')) {
+        const p = value.replace(/^file:\/\//, '');
+        return {
+          fsPath: p,
+          path: p,
+          scheme: 'file',
+          toString: () => value,
+        };
+      }
+      const schemeMatch = value.match(/^([a-zA-Z0-9_-]+):/);
+      const scheme = schemeMatch ? schemeMatch[1] : '';
+      return {
+        fsPath: value,
+        path: value,
+        scheme,
+        toString: () => value,
+      };
+    },
   },
   workspace: {
     getWorkspaceFolder: () => undefined,

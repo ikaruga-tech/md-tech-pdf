@@ -484,3 +484,96 @@ Parse error on line 3: ...
 - Phase 14 計測値: 12,448ms
 
 パフォーマンスの大幅な劣化はなく、同等水準を維持していることを確認しました。
+
+## 18. Phase 15 実装仕様・Local Image / Asset Preview 統合と Resource Resolution の確立
+
+Phase 15におけるローカル画像プレビュー統合、リソース解決アーキテクチャ、およびセキュリティ境界仕様を以下に規定します。
+
+### 18.1 Resource Resolution アーキテクチャと責務分離
+
+VS Code Webview ではセキュリティ上の制約により、ローカルファイルを直接 `file://` 等で参照することはできず、`webview.asWebviewUri()` による変換が必須となります。一方で Core（`md-tech-pdf`）の可搬性と PDF 生成機能を維持するため、以下の責務分離を徹底しました：
+
+- Core 側の責務:
+  - Markdown AST（`inline` 配下の `image` トークン）および raw HTML（`<img src="...">`）内の画像参照を検出します。
+  - `HtmlRenderOptions` に新設された汎用コールバック `resourceUrlTransformer?: (url: string) => string` を適用し、URL 文字列の抽象的な書き換えのみを実行します。
+  - Core 内部には `vscode.Uri` や `asWebviewUri` などの VS Code 固有 API を一切導入しません。
+- Extension 側の責務:
+  - 専用モジュール `vscode-extension/src/preview/resource-resolver.ts` を配置。
+  - Markdown ドキュメント URI と Webview インスタンスを元に、URL 判定、セキュリティ境界検証、および `webview.asWebviewUri()` への変換を一元管理します。
+
+```text
+Markdown image / raw HTML img
+       ↓
+Core HtmlRenderer (AST token traversal)
+       ↓
+generic resourceUrlTransformer hook
+       ↓
+Extension Resource Resolver
+       ↓
+Security boundary check & path resolution
+       ↓
+webview.asWebviewUri(...)
+       ↓
+Webview-safe URI in HTML
+```
+
+### 18.2 URL スキーム分類と解決ポリシー
+
+Resource Resolver における URL スキームのハンドリング方針は以下の通りです：
+
+- `https:`, `data:`:
+  - リモート HTTPS 画像（バッジ、CDN アセット等）およびインライン Data URI 画像は一切変換せず、元の文字列を維持します。
+  - Webview の CSP（`img-src ${webview.cspSource} data: https:`）により安全に描画されます。
+- `javascript:`, `vbscript:`:
+  - スクリプト注入等の脆弱性を防ぐため、空文字を返却して無害化（拒否）します。
+- `http:`, `vscode-webview:`, `vscode-resource:`:
+  - 外部非暗号化通信または既に Webview URI 化された参照は、ローカルファイル解決を試みずそのまま維持します。
+- 相対パス (`./...`, `../...`) および `file:` スキーム:
+  - ドキュメント基準ディレクトリから絶対パスを算出し、後述のセキュリティ境界に基づいて検証・変換します。
+
+### 18.3 ワークスペース境界（Workspace Boundary）とスタンドアロン方針
+
+パストラバーサル（`../../../../etc/passwd` 等）による不正なファイル読み取りを防止するため、以下の二層のセキュリティ境界を定義しました：
+
+1. ワークスペース内 Markdown ドキュメント:
+   - `vscode.workspace.getWorkspaceFolder(documentUri)` によりドキュメントが属するワークスペースフォルダを特定。
+   - 許可ルートは「ワークスペースフォルダのルートディレクトリ配下」とします。
+   - これにより、技術文書で一般的に利用される親ディレクトリ参照（例: `../images/architecture.png`）を安全に許可しつつ、ワークスペース外への逸脱を厳格に遮断します。
+2. ワークスペース外（スタンドアロン）Markdown ドキュメント:
+   - 許可ルートを「Markdown ドキュメントの親ディレクトリ配下」に限定します。
+   - 親ディレクトリ外（`../`）への参照はセキュリティ違反として拒否されます。
+3. セキュリティ境界外へのアクセス拒否:
+   - 境界外への参照を検知した場合、変換を行わず元の文字列のまま残します（Webview 側でアクセスが拒否され安全）。
+   - `OutputChannel`（`md-tech-pdf`）に警告ログを記録します。この際、ユーザー名等の機微情報漏洩を防ぐため、ドキュメント名と指定リソース名のみを出力します。
+
+### 18.4 localResourceRoots 再設計（Least Privilege の堅持）
+
+WebviewPanel 作成時の `localResourceRoots` は、最小権限（Least Privilege）方針を維持しながら親アセット参照を許容するよう再設計しました：
+
+- ワークスペース内ドキュメント: `[vscode.Uri.file(docDir), workspaceFolder.uri]` を指定。
+- スタンドアロン・ドキュメント: `[vscode.Uri.file(docDir)]` のみを指定。
+- ワークスペース外の任意ディレクトリへのアクセスは許可しません。
+
+### 18.5 クエリ・フラグメント・日本語ファイル名対応
+
+- クエリパラメータ（`?v=1`）およびフラグメント（`#icon`）:
+  - パス解決前に `splitQueryAndFragment` により分離し、`webview.asWebviewUri()` で変換された URI の末尾に再結合して返却します。
+- 日本語ファイル名および空白文字:
+  - `decodeURIComponent` によりパーセントエンコーディング（`%20` 等）を安全に復元した上でファイルパス解決を行います。
+
+### 18.6 インライン SVG・Missing 画像・Untitled の安全性
+
+- インライン SVG の保護:
+  - Mermaid および PlantUML のダイアグラム SVG は、Core のパース直後のトークン走査（AST）で画像 URL 変換を行うため、後から注入されるダイアグラム SVG の内部構造を一切破壊しません。
+- Missing 画像（存在しないファイル）:
+  - 存在しない相対パスが指定された場合でも、プレビュー生成全体を中断させず、ブラウザ標準の broken image として表示します。
+- 未保存（`untitled:`）ドキュメント:
+  - 基準となるファイルシステム上のディレクトリが存在しないため、相対パス解決を安全にバイパス（未解決のまま維持）し、プレビュー表示そのものは継続します。
+
+### 18.7 既知の制約と今後の拡張課題
+
+- Local Font File:
+  - 現在の Front Matter（`DocumentOptions.style.font`）にはローカルフォントファイル参照（`.ttf`, `.woff2` 等）のスキーマおよび解決機能は存在しません（OS インストールフォントおよび Google Fonts のみ対応）。本機能は将来の拡張課題とします。
+- CSS `url(...)`:
+  - ユーザー定義の外部 CSS やカスタムスタイルにおける相対 `url(...)` の Webview URI 変換は Phase 15 のスコープ外とし、Markdown 内の画像 `src`（および raw HTML の `<img src="...">`）を対象とします。
+

@@ -328,4 +328,57 @@ invalid broken syntax ???
       expect(html).toContain('Mermaid diagram rendering failed');
     });
   });
+
+  describe('resourceUrlTransformer', () => {
+    it('should transform Markdown image src using provided callback', async () => {
+      const markdown = `
+# Image Test
+
+![Local Image](./images/sample.png "Sample Title")
+![Remote Image](https://example.com/logo.svg)
+`;
+      const transformedUrls: string[] = [];
+      const html = await renderer.render(markdown, {
+        resourceUrlTransformer: (url) => {
+          transformedUrls.push(url);
+          if (url.startsWith('./')) {
+            return `vscode-webview://transformed/${url.slice(2)}`;
+          }
+          return url;
+        },
+      });
+
+      expect(transformedUrls).toEqual([
+        './images/sample.png',
+        'https://example.com/logo.svg',
+      ]);
+      expect(html).toContain(
+        '<img src="vscode-webview://transformed/images/sample.png" alt="Local Image" title="Sample Title">'
+      );
+      expect(html).toContain('<img src="https://example.com/logo.svg" alt="Remote Image">');
+    });
+
+    it('should transform raw HTML img tags while preserving other attributes', async () => {
+      const markdown = `
+# Raw HTML Image
+
+<img src="./assets/chart.png" width="400" height="300" alt="Chart">
+`;
+      const html = await renderer.render(markdown, {
+        resourceUrlTransformer: (url) => `https://transformed.local/${url}`,
+      });
+
+      expect(html).toContain(
+        '<img src="https://transformed.local/./assets/chart.png" width="400" height="300" alt="Chart">'
+      );
+    });
+
+    it('should preserve original image src when no resourceUrlTransformer is provided', async () => {
+      const markdown = '![Default](./images/sample.png)';
+      const html = await renderer.render(markdown);
+
+      expect(html).toContain('<img src="./images/sample.png" alt="Default">');
+    });
+  });
 });
+
