@@ -12,9 +12,11 @@ A standalone command-line interface (CLI) is also available in the repository fo
 
 ## Features
 
+- **Live Print-Preview**: Real-time side-by-side preview matching actual PDF paper dimensions, custom margins, and typography.
+- **Fast In-Memory Diagram Cache**: Sub-10ms warm re-rendering for documents with complex Mermaid and PlantUML diagrams.
 - **Direct PDF Export**: Convert Markdown files to PDF with a single command.
 - **Save As Dialog**: Choose a customized output directory and filename interactively.
-- **Explorer Context Menu**: Right-click any `.md` or `.markdown` file in the Explorer view to export.
+- **Explorer Context Menu**: Right-click any `.md` or `.markdown` file in the Explorer view to preview or export.
 - **Mermaid Diagram Support**: Render flowcharts, sequence diagrams, class diagrams, state diagrams, and ER diagrams without external dependencies.
 - **PlantUML Diagram Support**: Render PlantUML diagrams with local Java and PlantUML JAR integration.
 - **Front Matter Configuration**: Control document-level layout, margins, orientations, and custom fonts directly within Markdown.
@@ -22,7 +24,15 @@ A standalone command-line interface (CLI) is also available in the repository fo
 
 ## Usage
 
-### 1. Export to PDF
+### 1. Open Preview
+
+Open a real-time side-by-side print preview matching target paper dimensions:
+
+1. Open a Markdown file in the editor.
+2. Click the **md-tech-pdf: Open Preview** icon in the editor title bar, or open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run `md-tech-pdf: Open Preview`.
+3. The preview panel opens beside your editor, rendering typography and vector diagrams with high-speed in-memory caching.
+
+### 2. Export to PDF
 
 Export the currently active Markdown document directly to a PDF in the same directory:
 
@@ -32,7 +42,7 @@ Export the currently active Markdown document directly to a PDF in the same dire
 
 Output: `document.md` is compiled to `document.pdf`.
 
-### 2. Export to PDF As...
+### 3. Export to PDF As
 
 Export with a custom destination path and filename:
 
@@ -41,10 +51,10 @@ Export with a custom destination path and filename:
 3. Run `md-tech-pdf: Export to PDF As...`.
 4. Choose the target destination in the Save Dialog.
 
-### 3. Explorer Context Menu
+### 4. Explorer Context Menu
 
 1. In the VS Code File Explorer, right-click on any `.md` or `.markdown` file.
-2. Select `md-tech-pdf: Export to PDF`.
+2. Select `md-tech-pdf: Open Preview` or `md-tech-pdf: Export to PDF`.
 
 ## Front Matter Configuration
 
@@ -84,6 +94,7 @@ This document demonstrates high-quality PDF export using `md-tech-pdf`.
 
 Configure extension settings via VS Code Settings (`Preferences: Open User Settings (JSON)` or GUI):
 
+- `md-tech-pdf.preview.refresh`: Controls when an open preview is refreshed (`"manual"`, `"onSave"`, or `"onType"`, default: `"onSave"`).
 - `md-tech-pdf.plantuml.javaPath`: Path to the Java executable (default: `"java"`).
 - `md-tech-pdf.plantuml.jarPath`: Path to the local `plantuml.jar` file (default: `""`).
 - `md-tech-pdf.export.outputDirectory`: Default output directory for exports. Leave empty to output next to the source Markdown file (default: `""`).

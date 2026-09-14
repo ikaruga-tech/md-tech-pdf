@@ -629,7 +629,7 @@ WebviewPanel 作成時の `localResourceRoots` は、最小権限（Least Privil
 - Mermaid 1件編集（Mermaid 1件のみ再生成、残り7件キャッシュヒット）: 0.64 秒（約 640 ms、初回比 約 20 倍高速化）
 - PlantUML 1件編集（PlantUML 1件のみ再生成、残り7件キャッシュヒット）: 3.92 秒（約 3,920 ms、初回比 約 3.4 倍高速化）
 
-なお、上記は Core `HtmlRenderer.render()` 単体のベンチマーク測定値です。VS Code 拡張機能の End-to-End（ファイル読み込み、Webview URI 変換、Webview HTML 更新）ではさらに約 5〜10 ms 程度が付加されますが、Warm 時は End-to-End でも約 15〜20 ms 程度で即座に反映されます。
+なお、上記は特定の開発検証環境（Apple Silicon、Node.js v24）における Core `HtmlRenderer.render()` 単体のベンチマーク測定例であり、ハードウェアスペックやダイアグラムの規模・実行環境によって変動します。製品としての性能保証値ではありません。VS Code 拡張機能の End-to-End（ファイル読み込み、Webview URI 変換、Webview HTML 更新）ではさらに約 5〜10 ms 程度が付加されますが、Warm 時は End-to-End でも約 15〜20 ms 程度で即座に反映されます。
 
 ### 19.5 スクロール位置に関する制約（Scroll Position Limitation）
 
@@ -641,3 +641,86 @@ Phase 16 における再描画では Webview 内の HTML を丸ごと置換す�
   - 外部非暗号化 HTTP 通信は Webview の CSP（`https:` のみ許可）によりブロックされる場合がありますが、ローカルファイル解決を誤って行わないよう判定し、そのまま維持します。
 - `vscode-webview:` スキーム:
   - 既に拡張機能によって Webview 用に変換済みの URI については、再変換を行わず安全に維持します。
+
+## 20. Preview Quality, Security Hardening & Cache Strategy (Phase 17)
+
+### 20.1 セキュリティ多層防御アーキテクチャ (Multi-Layered Defense)
+
+VS Code プレビューにおけるセキュリティは、単一のフィルターに依存せず、以下の多層防御によって既知の主要なリスクを抑制しています。
+
+1. **スクリプト実行の抑制 (`enableScripts: false`)**:
+   - Webview 作成時のオプションで `enableScripts: false` を設定し、CSP でも script source を一切許可しないことで、万が一 HTML 内にスクリプトタグが含まれていた場合でも JavaScript の実行をブラウザエンジン層で抑制します。
+2. **厳格な Content-Security-Policy (CSP)**:
+   - 実装コード（`buildPreviewCsp`）に準拠した以下のディレクティブを適用します。
+   - `default-src 'none';`
+   - `img-src ${cspSource} data: https:;`
+   - `style-src ${cspSource} 'unsafe-inline' https://fonts.googleapis.com;`
+   - `font-src ${cspSource} data: https://fonts.gstatic.com;`
+   - スクリプト実行権限 (`script-src`) は定義せず、外部スクリプトの取得や実行をブラウザレベルで拒絶します。
+3. **ローカルリソースアクセスの物理的制限 (`localResourceRoots`)**:
+   - VS Code Webview がファイルシステムから読み込みを許可するディレクトリを、ワークスペースルート（または単体ドキュメントの親ディレクトリ）に限定します。
+4. **リソースリゾルバによるパス境界検証 (`ResourceUrlTransformer`)**:
+   - Markdown 内で指定された相対パスおよびローカルパスについて、境界外へのトラバーサル（`../` や `%2e%2e/`、シンボリックリンク）を検知して遮断します。
+
+### 20.2 HTML サニタイズに関する方針 (HTML Sanitization Policy)
+
+v0.3.0 においては、`DOMPurify` や `sanitize-html` などのサードパーティ HTML サニタイザーは意図して導入していません。
+
+- **未導入の理由**:
+  - 技術文書（Markdown）では、`<details>`, `<summary>`, `<table>`, `<sup>`, `<sub>`, `<kbd>`, `<mark>`, `<abbr>` などの標準 HTML タグや、インラインスタイル、インライン `<svg>` が頻繁に使用されます。過剰なサニタイズを行うと、これら技術文書の正当な表現力が損なわれるリスクがあります。
+  - 前述の多層防御（`enableScripts: false`、厳格な CSP、`localResourceRoots`、Resource Resolver）により、スクリプト実行や境界外ファイルへのアクセスリスクに対して多層の防御線を構築しているため、v0.3.0 としては十分な安全境界が成立しています。
+- **将来（将来バージョン）導入時の Allowlist 候補**:
+  - タグ: `h1`〜`h6`, `p`, `div`, `span`, `ul`, `ol`, `li`, `blockquote`, `pre`, `code`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `a`, `img`, `hr`, `br`, `details`, `summary`, `sup`, `sub`, `kbd`, `mark`, `abbr`, `svg`, `path`, `g`, `circle`, `rect`, `line`, `polygon`, `text`
+  - 属性: `class`, `id`, `style`, `src`, `href`, `alt`, `title`, `width`, `height`, `align`, `viewBox`, `xmlns`, `fill`, `stroke`
+  - 拒否タグ: `script`, `iframe`, `object`, `embed`, `base`, `form`, `input`, `button`
+
+### 20.3 URL スキームの包括的ハンドリング方針 (URL Scheme Handling)
+
+Markdown 内の画像やリンク等で使用されるスキームは、以下の方針で統一的に処理されます。
+
+| スキーム / 形式 | 処理方針 | 理由・セキュリティ動作 |
+| --- | --- | --- |
+| `https:` | そのまま維持 | CSP の `img-src https:` により外部安全通信として許可。 |
+| `data:` | そのまま維持 | インライン SVG や base64 画像として許可。 |
+| 相対パス (`./`, `../`) | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。 |
+| `file:` | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。 |
+| `http:` | そのまま維持 | ローカル解決は行わない。CSP の `img-src` で許可されないためプレビューでは読み込めません（未サポート）。 |
+| `javascript:` | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。 |
+| `vbscript:` | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。 |
+| `vscode-webview:` | 空文字 `''` に置換 | ユーザー Markdown 内からの内部スキーム偽装・悪用を防止するため拒絶（拡張機能自身が `asWebviewUri` で生成する URI は正常に処理されます）。 |
+| `vscode-resource:` | 空文字 `''` に置換 | レガシー内部スキームの悪用を防止するため拒絶。 |
+
+### 20.4 シンボリックリンクとパストラバーサル防御方針
+
+- 相対パスのトラバーサル（`../` や URL エンコードされた `%2e%2e/`）は、URL デコードを行った上で `path.resolve()` により解決され、境界ディレクトリとの相対関係を比較検証します。
+- シンボリックリンクを経由した境界外ファイル参照を防ぐため、対象ファイルがローカルファイルシステム上に実在する場合（`fs.existsSync()` が真の場合）は `fs.realpathSync()` によりファイルシステム上の真の絶対パス（実体パス）を取得し、実体パスが許可境界ディレクトリ配下に含まれているかを検証します。境界外を指すシンボリックリンクは拒否され、アクセスは許可されません。対象ファイルが存在しない場合は、レキシカルな相対パス検証のみが行われます。
+
+### 20.5 キャッシュメモリ管理戦略 (Cache Memory Management)
+
+プレビュー機能で使用されるインメモリ・ダイアグラムキャッシュ（`DiagramCache`）のメモリ設計方針は以下の通りです。
+
+- **キャッシュキー生成**:
+  - ダイアグラム種別、ソースコード、および描画出力に影響するオプション（Mermaid テーマ、PlantUML jarPath/jarMtime 等）を結合し、確定的かつ安全な **SHA-256** ハッシュを計算してキャッシュキーとします。
+- **メモリ使用量の実態（観測値に基づく概算）**:
+  - 生成される SVG 1件あたりのサイズは典型的な観測値として約 5〜20 KB（平均約 10 KB）です。
+  - 大規模な技術文書で 1,000 件のダイアグラムがレンダリングされた場合でも、合計メモリ消費量は約 10 MB 程度にとどまります（ダイアグラムの規模や複雑度によって変動します）。
+- **管理方針**:
+  - 現代のエディタメモリ環境において 10 MB 程度の消費は軽微であり、複雑な LRU（Least Recently Used）キャッシュアルゴリズムや最大サイズ制限を導入することは、不要なバグやオーバーヘッドを生む原因となります。
+  - したがって、シンプルな `Map<string, string>` による管理とし、プレビューパネルの破棄（`dispose()`）または拡張機能の終了時にキャッシュを全開放するセッションライフサイクル管理を採用しています。
+
+### 20.6 エラー UX と情報漏洩防止 (Error UX & Leak Prevention)
+
+- **ダイアグラム構文エラーと HTML エスケープ**:
+  - 構文エラー発生時は、プレビュー全体をクラッシュさせず、該当ダイアグラムの位置にインラインのエラーカードを表示してプレビュー表示を継続します。
+  - エラーカード内に埋め込まれるエラーメッセージ文字列は、専用の `escapeHtml()` 関数により確実に HTML エスケープ処理され、メッセージ起因の HTML 崩れや XSS を防ぎます（これはエラーメッセージに対するエスケープであり、ドキュメント全体の raw HTML セキュリティとは役割が異なります）。
+- **UI 通知メッセージのサニタイズ**:
+  - `showErrorMessage` などの VS Code 通知ポップアップにスタックトレースや内部ファイルパスがそのまま漏洩しないよう、`getErrorMessage()` においてエラーメッセージの先頭行のみをクリーンに抽出し、安全で簡潔な通知を提供します。詳細ログは専用の OutputChannel（`md-tech-pdf`）に集約されます。
+
+### 20.7 v0.3.0 における既知の制限事項 (Known Limitations)
+
+1. **Auto Refresh の onType debounce 固定値**:
+   - `onType` 自動更新時の debounce 遅延時間は 500ms 固定で実装されており、v0.3.0 ではユーザー設定による変更はサポートしていません。
+2. **スクロール位置の同期と保持**:
+   - ドキュメント更新時に Webview 内の HTML を再構築するため、プレビューのスクロール位置がトップに巻き戻る場合があります。エディタ側カーソル行との双方向スクロール同期（Scroll Sync）は、将来バージョンでの改善課題とします。
+3. **外部スタイルのカスタマイズ性**:
+   - 現在のプレビューは組み込みの用紙寸法・デフォルトスタイルをベースとしており、ユーザー独自のカスタム CSS ファイルを動的に注入する機能は将来の拡張対象となります。

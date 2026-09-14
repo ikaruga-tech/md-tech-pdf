@@ -30,6 +30,14 @@ describe('Extension Integration Tests', () => {
     );
   });
 
+  it('should register openPreview command', async () => {
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(
+      commands.includes('md-tech-pdf.openPreview'),
+      'Command md-tech-pdf.openPreview must be registered in VS Code'
+    );
+  });
+
   it('should register configuration settings with expected default values', () => {
     const config = vscode.workspace.getConfiguration('md-tech-pdf');
 
@@ -59,6 +67,13 @@ describe('Extension Integration Tests', () => {
       afterExportInspect?.defaultValue,
       'none',
       'export.afterExport default should be "none"'
+    );
+
+    const refreshInspect = config.inspect<string>('preview.refresh');
+    assert.strictEqual(
+      refreshInspect?.defaultValue,
+      'onSave',
+      'preview.refresh default should be "onSave"'
     );
   });
 

@@ -245,10 +245,8 @@ export class PreviewPanel implements vscode.Disposable {
           this.outputChannel.appendLine(event.message.trim());
           this.outputChannel.appendLine('----------------------------------------');
         },
-        onCacheEvent: (event: any) => {
-          const status = event.hit ? 'HIT' : 'MISS';
-          const typeLabel = event.type === 'plantuml' ? 'PlantUML' : 'Mermaid';
-          this.outputChannel.appendLine(`[Diagram Cache] ${status} ${typeLabel} #${event.index}`);
+        onCacheEvent: (_event: any) => {
+          // Suppressed in standard preview to avoid cluttering the Output channel during typing.
         },
       });
 

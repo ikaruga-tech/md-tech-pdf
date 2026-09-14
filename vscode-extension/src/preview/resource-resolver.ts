@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
@@ -28,11 +29,35 @@ export function splitQueryAndFragment(rawUrl: string): { cleanPath: string; suff
 }
 
 /**
- * Checks whether a given target path is strictly contained within an allowed boundary directory.
+ * Checks whether a given target path is strictly contained within an allowed boundary directory,
+ * taking symlink realpaths into account.
  */
 export function isPathWithinBoundary(boundaryDir: string, targetPath: string): boolean {
-  const normalizedBoundary = path.resolve(boundaryDir);
-  const normalizedTarget = path.resolve(targetPath);
+  let normalizedBoundary = path.resolve(boundaryDir);
+  try {
+    if (fs.existsSync(normalizedBoundary)) {
+      normalizedBoundary = fs.realpathSync(normalizedBoundary);
+    }
+  } catch {
+    // Keep resolved path if realpathSync fails
+  }
+
+  let normalizedTarget = path.resolve(targetPath);
+
+  // Initial lexical check
+  const lexicalRelative = path.relative(normalizedBoundary, normalizedTarget);
+  if (lexicalRelative.startsWith('..') || path.isAbsolute(lexicalRelative)) {
+    return false;
+  }
+
+  // If target exists on disk, resolve symlinks to prevent symlink traversal attacks
+  try {
+    if (fs.existsSync(normalizedTarget)) {
+      normalizedTarget = fs.realpathSync(normalizedTarget);
+    }
+  } catch {
+    // Keep resolved path if realpathSync fails
+  }
 
   const relative = path.relative(normalizedBoundary, normalizedTarget);
   // If the relative path does not start with '..' and is not absolute, it is inside the boundary
@@ -74,20 +99,18 @@ export function createResourceUrlTransformer(
       return rawUrl;
     }
 
-    // 2. Reject hazardous or non-local schemes
+    // 2. Reject hazardous, script, or internal webview schemes directly referenced in markdown
     if (
       trimmed.startsWith('javascript:') ||
-      trimmed.startsWith('vbscript:')
+      trimmed.startsWith('vbscript:') ||
+      trimmed.startsWith('vscode-webview:') ||
+      trimmed.startsWith('vscode-resource:')
     ) {
       return '';
     }
 
-    // 3. Keep http: or existing vscode webview schemes as-is without local resolution
-    if (
-      trimmed.startsWith('http://') ||
-      trimmed.startsWith('vscode-webview:') ||
-      trimmed.startsWith('vscode-resource:')
-    ) {
+    // 3. Keep http: as-is without local resolution (will be blocked by CSP if insecure)
+    if (trimmed.startsWith('http://')) {
       return rawUrl;
     }
 

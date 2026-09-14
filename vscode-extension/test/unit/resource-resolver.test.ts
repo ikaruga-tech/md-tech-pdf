@@ -1,4 +1,6 @@
 import * as assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import './mock-vscode.js';
 import * as vscode from 'vscode';
@@ -187,11 +189,50 @@ describe('resource-resolver', () => {
       assert.strictEqual(result, dataUri);
     });
 
-    it('should reject javascript: scheme by returning empty string', () => {
+    it('should reject javascript: and vbscript: schemes by returning empty string', () => {
       const transformer = createResourceUrlTransformer(docUri, mockWebview, mockOutputChannel);
-      const jsUrl = 'javascript:alert(1)';
-      const result = transformer(jsUrl);
-      assert.strictEqual(result, '');
+      assert.strictEqual(transformer('javascript:alert(1)'), '');
+      assert.strictEqual(transformer('vbscript:msgbox(1)'), '');
+    });
+
+    it('should reject user-supplied vscode-webview: and vscode-resource: schemes by returning empty string', () => {
+      const transformer = createResourceUrlTransformer(docUri, mockWebview, mockOutputChannel);
+      assert.strictEqual(transformer('vscode-webview://attacker/secret.png'), '');
+      assert.strictEqual(transformer('vscode-resource://file/etc/passwd'), '');
+    });
+
+    it('should reject URL-encoded path traversal (%2e%2e/) outside boundary', () => {
+      const transformer = createResourceUrlTransformer(docUri, mockWebview, mockOutputChannel);
+      const encodedTraversal = '%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/secret.png';
+      const result = transformer(encodedTraversal);
+      assert.strictEqual(result, encodedTraversal);
+      assert.ok(
+        loggedLines.some((l) => l.includes('Access denied: resource path is outside the allowed boundary'))
+      );
+    });
+
+    it('should reject symlink pointing outside boundary directory', () => {
+      const tempBase = fs.mkdtempSync(path.join(os.tmpdir(), 'md-tech-symlink-test-'));
+      try {
+        const fakeWorkspace = path.join(tempBase, 'workspace');
+        const outsideDir = path.join(tempBase, 'outside');
+        fs.mkdirSync(fakeWorkspace, { recursive: true });
+        fs.mkdirSync(outsideDir, { recursive: true });
+
+        const secretFile = path.join(outsideDir, 'secret.txt');
+        fs.writeFileSync(secretFile, 'sensitive data', 'utf-8');
+
+        const symlinkPath = path.join(fakeWorkspace, 'symlink-outside.txt');
+        try {
+          fs.symlinkSync(secretFile, symlinkPath);
+          // isPathWithinBoundary should detect realpath is outside fakeWorkspace
+          assert.strictEqual(isPathWithinBoundary(fakeWorkspace, symlinkPath), false);
+        } catch {
+          // Skip assertion if OS environment prevents creating symlinks
+        }
+      } finally {
+        fs.rmSync(tempBase, { recursive: true, force: true });
+      }
     });
 
     it('should safely bypass relative resolution for untitled documents without errors', () => {

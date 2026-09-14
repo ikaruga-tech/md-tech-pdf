@@ -41,6 +41,13 @@ b {
   font-weight: 700;
 }
 
+/* Images: constrain to container width and maintain aspect ratio */
+img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-text);

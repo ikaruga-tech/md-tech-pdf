@@ -49,6 +49,19 @@ describe('DiagramRenderCache & computeDiagramCacheKey', () => {
 
       expect(key1).not.toBe(key2);
     });
+
+    it('should differentiate when plantuml jarMtime changes (e.g. JAR file updated)', () => {
+      const key1 = computeDiagramCacheKey('plantuml', '@startuml\nA->B\n@enduml', {
+        jarPath: '/opt/plantuml.jar',
+        jarMtime: 1000000,
+      });
+      const key2 = computeDiagramCacheKey('plantuml', '@startuml\nA->B\n@enduml', {
+        jarPath: '/opt/plantuml.jar',
+        jarMtime: 2000000,
+      });
+
+      expect(key1).not.toBe(key2);
+    });
   });
 
   describe('DiagramRenderCache class', () => {
