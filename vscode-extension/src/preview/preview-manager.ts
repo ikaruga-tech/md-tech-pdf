@@ -59,7 +59,10 @@ export class PreviewManager implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private isDisposed = false;
 
-  constructor(panelFactory?: PreviewPanelFactory) {
+  constructor(
+    panelFactory?: PreviewPanelFactory,
+    private readonly extensionUri?: vscode.Uri
+  ) {
     this.panelFactory =
       panelFactory ??
       ((documentUri, viewColumn, settingsOrOptions) => {
@@ -74,6 +77,7 @@ export class PreviewManager implements vscode.Disposable {
         return PreviewPanel.create(documentUri, viewColumn, {
           settings: extSettings,
           diagramCache: this.diagramCache,
+          extensionUri: this.extensionUri,
         });
       });
 

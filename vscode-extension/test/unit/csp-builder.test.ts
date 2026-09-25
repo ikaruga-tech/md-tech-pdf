@@ -9,10 +9,18 @@ describe('csp-builder', () => {
     assert.match(metaTag, /^<meta http-equiv="Content-Security-Policy" content=".*">$/);
   });
 
-  it('should deny scripts completely by not declaring script-src and setting default-src to none', () => {
+  it('should deny scripts completely by not declaring script-src when nonce is not provided', () => {
     const metaTag = buildPreviewCsp(dummyCspSource);
     assert.match(metaTag, /default-src 'none'/);
     assert.doesNotMatch(metaTag, /script-src/);
+  });
+
+  it('should allow scripts strictly with cryptographic nonce when nonce is provided', () => {
+    const nonce = 'dGVzdE5vbmNlMTIzNDU2';
+    const metaTag = buildPreviewCsp(dummyCspSource, nonce);
+    assert.match(metaTag, /default-src 'none'/);
+    assert.match(metaTag, /script-src 'nonce-dGVzdE5vbmNlMTIzNDU2'/);
+    assert.doesNotMatch(metaTag, /script-src[^;]*'unsafe-inline'/);
   });
 
   it('should allow Google Fonts in style-src and font-src', () => {
