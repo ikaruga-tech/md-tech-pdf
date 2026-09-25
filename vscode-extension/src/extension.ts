@@ -4,7 +4,7 @@ import { createOpenPreviewCommand } from './commands/open-preview.js';
 import { PreviewManager } from './preview/preview-manager.js';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const previewManager = new PreviewManager();
+  const previewManager = new PreviewManager(undefined, context.extensionUri);
   context.subscriptions.push(previewManager);
 
   context.subscriptions.push(

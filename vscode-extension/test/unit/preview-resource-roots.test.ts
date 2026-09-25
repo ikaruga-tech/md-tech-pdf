@@ -45,4 +45,16 @@ describe('preview-resource-roots', () => {
     assert.strictEqual(roots[0].fsPath, path.resolve('/workspace/project/nested/sub'));
     assert.strictEqual(roots[1].fsPath, workspaceRoot);
   });
+
+  it('should include extensionUri in local resource roots when provided', () => {
+    const docPath = path.resolve('/workspace/project/docs/guide.md');
+    const docUri = vscode.Uri.file(docPath);
+    const extensionUri = vscode.Uri.file('/opt/extensions/md-tech-pdf');
+
+    const roots = resolveLocalResourceRoots(docUri, extensionUri);
+
+    assert.strictEqual(roots.length, 2);
+    assert.strictEqual(roots[0].fsPath, path.resolve('/workspace/project/docs'));
+    assert.strictEqual(roots[1].fsPath, '/opt/extensions/md-tech-pdf');
+  });
 });

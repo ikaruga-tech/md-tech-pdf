@@ -40,9 +40,70 @@ body {
   background-color: var(--vscode-editor-background, #1e1e1e);
 }
 
+.preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 12px;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.preview-toolbar-left, .preview-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #ffffff);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 16px;
+  user-select: none;
+  transition: background-color 0.1s ease;
+}
+
+.toolbar-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.toolbar-btn-primary {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.toolbar-btn-primary:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.toolbar-select {
+  background-color: var(--vscode-dropdown-background, #252526);
+  color: var(--vscode-dropdown-foreground, #cccccc);
+  border: 1px solid var(--vscode-dropdown-border, #3c3c3c);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
 .md-tech-pdf-preview-canvas {
   box-sizing: border-box;
-  min-height: 100vh;
+  min-height: calc(100vh - 36px);
   padding: 24px 16px;
   display: flex;
   justify-content: safe center;
@@ -60,6 +121,43 @@ body {
   margin: 0 auto;
   flex-shrink: 0;
 }
+
+@media print {
+  .preview-toolbar {
+    display: none !important;
+  }
+  .md-tech-pdf-preview-canvas {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}
+`;
+}
+
+/**
+ * Returns HTML markup for the Preview Toolbar.
+ */
+export function getPreviewToolbarHtml(): string {
+  return `
+<div class="preview-toolbar" role="toolbar" aria-label="Markdown Technical PDF Preview Toolbar">
+  <div class="preview-toolbar-left">
+    <button id="btn-toolbar-reload" class="toolbar-btn" type="button" title="Reload preview bypassing diagram cache">
+      <span>↻</span> Reload
+    </button>
+    <label for="select-toolbar-zoom" style="margin-left: 8px; font-size: 11px; opacity: 0.85;">Zoom:</label>
+    <select id="select-toolbar-zoom" class="toolbar-select">
+      <option value="50%">50%</option>
+      <option value="75%">75%</option>
+      <option value="100%" selected>100%</option>
+      <option value="125%">125%</option>
+    </select>
+  </div>
+  <div class="preview-toolbar-right">
+    <button id="btn-toolbar-export" class="toolbar-btn toolbar-btn-primary" type="button" title="Export document to PDF directly">
+      <span>📄</span> Export PDF
+    </button>
+  </div>
+</div>
 `;
 }
 

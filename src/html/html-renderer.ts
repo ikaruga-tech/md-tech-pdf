@@ -290,7 +290,13 @@ export class HtmlRenderer {
             cache.set(cacheKey, svg);
           }
         }
-        const containerHtml = buildDiagramContainer(svg, item.block.options);
+        let containerHtml = buildDiagramContainer(svg, item.block.options);
+        if (options?.target === 'preview' && item.block.line) {
+          containerHtml = containerHtml.replace(
+            /^<div\b/,
+            `<div data-line="${item.block.line}"`
+          );
+        }
 
         const targetToken = tokens[item.index];
         targetToken.type = 'html_block';
@@ -301,11 +307,17 @@ export class HtmlRenderer {
           const rawMsg = err instanceof Error ? err.message : String(err);
           // Strip verbose/stack details for preview UI
           const userMsg = rawMsg.split('\n')[0].replace(/^Error:\s*/, '');
-          const errorHtml = buildDiagramErrorContainer(
+          let errorHtml = buildDiagramErrorContainer(
             item.block.type,
             userMsg,
             item.block.options
           );
+          if (item.block.line) {
+            errorHtml = errorHtml.replace(
+              /^<div\b/,
+              `<div data-line="${item.block.line}"`
+            );
+          }
 
           const targetToken = tokens[item.index];
           targetToken.type = 'html_block';
@@ -325,6 +337,23 @@ export class HtmlRenderer {
         } else {
           // For PDF generation, preserve strict behavior: throw error to fail document generation
           throw err;
+        }
+      }
+    }
+
+    // In target === 'preview', inject data-line attribute into block elements
+    if (options?.target === 'preview') {
+      for (const token of tokens) {
+        if (token.map && token.map.length >= 1) {
+          const line = token.map[0] + 1;
+          if (
+            token.type.endsWith('_open') ||
+            token.type === 'fence' ||
+            token.type === 'code_block' ||
+            token.type === 'hr'
+          ) {
+            token.attrSet('data-line', String(line));
+          }
         }
       }
     }

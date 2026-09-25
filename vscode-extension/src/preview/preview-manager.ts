@@ -37,6 +37,7 @@ export class ExtensionDiagramCache implements IDiagramRenderCache {
 export interface IPreviewPanelInstance {
   reveal(viewColumn?: vscode.ViewColumn): void;
   refresh(options?: PreviewRenderOptions): Promise<void>;
+  scrollToLine?(line: number): void;
   onDidDispose(listener: () => void): vscode.Disposable;
   dispose(): void;
 }
@@ -56,10 +57,14 @@ export class PreviewManager implements vscode.Disposable {
   private readonly panelFactory: PreviewPanelFactory;
   private readonly diagramCache = new ExtensionDiagramCache();
   private readonly debounceTimers = new Map<string, NodeJS.Timeout>();
+  private readonly scrollSyncTimers = new Map<string, NodeJS.Timeout>();
   private readonly disposables: vscode.Disposable[] = [];
   private isDisposed = false;
 
-  constructor(panelFactory?: PreviewPanelFactory) {
+  constructor(
+    panelFactory?: PreviewPanelFactory,
+    private readonly extensionUri?: vscode.Uri
+  ) {
     this.panelFactory =
       panelFactory ??
       ((documentUri, viewColumn, settingsOrOptions) => {
@@ -74,6 +79,7 @@ export class PreviewManager implements vscode.Disposable {
         return PreviewPanel.create(documentUri, viewColumn, {
           settings: extSettings,
           diagramCache: this.diagramCache,
+          extensionUri: this.extensionUri,
         });
       });
 
@@ -92,6 +98,13 @@ export class PreviewManager implements vscode.Disposable {
     if (vscode.workspace?.onDidChangeTextDocument) {
       this.disposables.push(
         vscode.workspace.onDidChangeTextDocument((e) => this.handleDocumentChange(e))
+      );
+    }
+    if (vscode.window?.onDidChangeTextEditorVisibleRanges) {
+      this.disposables.push(
+        vscode.window.onDidChangeTextEditorVisibleRanges((e) =>
+          this.handleVisibleRangesChange(e)
+        )
       );
     }
   }
@@ -141,6 +154,30 @@ export class PreviewManager implements vscode.Disposable {
   }
 
   /**
+   * Handles editor visible range changes for real-time scroll synchronization.
+   */
+  public handleVisibleRangesChange(e: vscode.TextEditorVisibleRangesChangeEvent): void {
+    if (this.isDisposed || !e.visibleRanges || e.visibleRanges.length === 0) {
+      return;
+    }
+
+    const key = e.textEditor.document.uri.toString();
+    const panel = this.panels.get(key);
+    if (!panel || !panel.scrollToLine) {
+      return;
+    }
+
+    const topVisibleLine = e.visibleRanges[0].start.line + 1;
+
+    this.clearScrollSyncTimer(key);
+    const timer = setTimeout(() => {
+      this.scrollSyncTimers.delete(key);
+      panel.scrollToLine?.(topVisibleLine);
+    }, 50);
+    this.scrollSyncTimers.set(key, timer);
+  }
+
+  /**
    * Clears any active debounce timer for a specific document.
    */
   private clearDebounceTimer(key: string): void {
@@ -148,6 +185,17 @@ export class PreviewManager implements vscode.Disposable {
     if (timer) {
       clearTimeout(timer);
       this.debounceTimers.delete(key);
+    }
+  }
+
+  /**
+   * Clears any active scroll sync timer for a specific document.
+   */
+  private clearScrollSyncTimer(key: string): void {
+    const timer = this.scrollSyncTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      this.scrollSyncTimers.delete(key);
     }
   }
 
@@ -181,6 +229,7 @@ export class PreviewManager implements vscode.Disposable {
 
     panel.onDidDispose(() => {
       this.clearDebounceTimer(key);
+      this.clearScrollSyncTimer(key);
       this.panels.delete(key);
     });
 
@@ -222,6 +271,11 @@ export class PreviewManager implements vscode.Disposable {
       clearTimeout(timer);
     }
     this.debounceTimers.clear();
+
+    for (const timer of this.scrollSyncTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.scrollSyncTimers.clear();
 
     while (this.disposables.length) {
       const item = this.disposables.pop();

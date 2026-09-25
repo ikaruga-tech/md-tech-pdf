@@ -1,9 +1,14 @@
+import * as crypto from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { type ExtensionSettings, getExtensionSettings } from '../config/extension-settings.js';
 import { getErrorMessage } from '../utils/error-utils.js';
 import { buildPreviewCsp } from './csp-builder.js';
-import { buildPageDimensionStyle, getPreviewBaseStyle } from './preview-style.js';
+import {
+  buildPageDimensionStyle,
+  getPreviewBaseStyle,
+  getPreviewToolbarHtml,
+} from './preview-style.js';
 import { createResourceUrlTransformer } from './resource-resolver.js';
 
 function escapeHtml(text: string): string {
@@ -18,17 +23,29 @@ function escapeHtml(text: string): string {
 /**
  * Resolves local resource roots according to Least Privilege principle.
  * Limits file access to the directory containing the Markdown document,
+ * the extension directory (for preview client scripts),
  * plus the workspace folder root if the document belongs to a workspace (allowing relative parent assets within workspace).
  */
-export function resolveLocalResourceRoots(documentUri: vscode.Uri): vscode.Uri[] {
+export function resolveLocalResourceRoots(
+  documentUri: vscode.Uri,
+  extensionUri?: vscode.Uri
+): vscode.Uri[] {
+  const roots: vscode.Uri[] = [];
   const docDirUri = vscode.Uri.file(path.dirname(documentUri.fsPath));
+  roots.push(docDirUri);
+
   if (documentUri.scheme === 'file') {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(documentUri);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder?.(documentUri);
     if (workspaceFolder) {
-      return [docDirUri, workspaceFolder.uri];
+      roots.push(workspaceFolder.uri);
     }
   }
-  return [docDirUri];
+
+  if (extensionUri) {
+    roots.push(extensionUri);
+  }
+
+  return roots;
 }
 
 let previewOutputChannel: vscode.OutputChannel | undefined;
@@ -53,6 +70,8 @@ export interface PreviewRenderOptions {
   settings?: ExtensionSettings;
   diagramCache?: IDiagramRenderCache;
   isBackgroundRefresh?: boolean;
+  bypassCache?: boolean;
+  extensionUri?: vscode.Uri;
 }
 
 /**
@@ -67,23 +86,54 @@ export class PreviewPanel implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly onDisposeEmitter = new vscode.EventEmitter<void>();
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly extensionUri?: vscode.Uri;
+  private diagramCache?: IDiagramRenderCache;
   private hasWarnedDiagramError = false;
   private renderGeneration = 0;
+  private lastScrollY = 0;
+  private lastScrollRatio = 0;
 
   public readonly onDidDispose = this.onDisposeEmitter.event;
 
   private constructor(
     panel: vscode.WebviewPanel,
     documentUri: vscode.Uri,
-    outputChannel?: vscode.OutputChannel
+    outputChannel?: vscode.OutputChannel,
+    extensionUri?: vscode.Uri,
+    diagramCache?: IDiagramRenderCache
   ) {
     this.panel = panel;
     this.documentUri = documentUri;
     this.outputChannel = outputChannel ?? getPreviewOutputChannel();
+    this.extensionUri = extensionUri;
+    this.diagramCache = diagramCache;
 
     this.panel.onDidDispose(
       () => {
         this.dispose();
+      },
+      null,
+      this.disposables
+    );
+
+    this.panel.webview.onDidReceiveMessage(
+      (message: unknown) => {
+        if (!message || typeof message !== 'object') {
+          return;
+        }
+        const msg = message as Record<string, unknown>;
+        if (msg.type === 'didScroll') {
+          if (typeof msg.scrollY === 'number') {
+            this.lastScrollY = msg.scrollY;
+          }
+          if (typeof msg.scrollRatio === 'number') {
+            this.lastScrollRatio = msg.scrollRatio;
+          }
+        } else if (msg.type === 'reload') {
+          void this.render({ bypassCache: true });
+        } else if (msg.type === 'exportPdf') {
+          void vscode.commands.executeCommand('md-tech-pdf.exportPdf', this.documentUri);
+        }
       },
       null,
       this.disposables
@@ -99,21 +149,35 @@ export class PreviewPanel implements vscode.Disposable {
     settingsOrOptions?: ExtensionSettings | PreviewRenderOptions
   ): PreviewPanel {
     const fileName = path.basename(documentUri.fsPath);
-    const localResourceRoots = resolveLocalResourceRoots(documentUri);
+    const options: PreviewRenderOptions =
+      settingsOrOptions && 'plantuml' in settingsOrOptions
+        ? { settings: settingsOrOptions as ExtensionSettings }
+        : ((settingsOrOptions as PreviewRenderOptions) ?? {});
+
+    const localResourceRoots = resolveLocalResourceRoots(
+      documentUri,
+      options.extensionUri
+    );
 
     const panel = vscode.window.createWebviewPanel(
       PreviewPanel.viewType,
       `Preview: ${fileName}`,
       viewColumn,
       {
-        enableScripts: false,
+        enableScripts: true,
         localResourceRoots,
       }
     );
 
-    const instance = new PreviewPanel(panel, documentUri);
+    const instance = new PreviewPanel(
+      panel,
+      documentUri,
+      undefined,
+      options.extensionUri,
+      options.diagramCache
+    );
     instance.showLoading();
-    void instance.render(settingsOrOptions);
+    void instance.render(options);
 
     return instance;
   }
@@ -137,10 +201,21 @@ export class PreviewPanel implements vscode.Disposable {
   }
 
   /**
+   * Scrolls the preview webview to the specified source line.
+   */
+  public scrollToLine(line: number): void {
+    void this.panel.webview.postMessage({
+      type: 'scrollToLine',
+      line,
+    });
+  }
+
+  /**
    * Displays a lightweight loading state while rendering is in progress.
    */
   private showLoading(): void {
-    const csp = buildPreviewCsp(this.panel.webview.cspSource);
+    const nonce = crypto.randomBytes(16).toString('base64');
+    const csp = buildPreviewCsp(this.panel.webview.cspSource, nonce);
     this.panel.webview.html = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -210,7 +285,8 @@ export class PreviewPanel implements vscode.Disposable {
         path.extname(this.documentUri.fsPath)
       );
 
-      const cspTag = buildPreviewCsp(this.panel.webview.cspSource);
+      const nonce = crypto.randomBytes(16).toString('base64');
+      const cspTag = buildPreviewCsp(this.panel.webview.cspSource, nonce);
       const customCss = [
         getPreviewBaseStyle(),
         buildPageDimensionStyle(docOptions.pdf),
@@ -222,6 +298,10 @@ export class PreviewPanel implements vscode.Disposable {
         this.outputChannel
       );
 
+      const effectiveCache = options.bypassCache
+        ? undefined
+        : (options.diagramCache ?? this.diagramCache);
+
       let diagramErrorCount = 0;
       const renderer = new HtmlRenderer();
       const html = await renderer.render(markdownContent, {
@@ -230,7 +310,7 @@ export class PreviewPanel implements vscode.Disposable {
         extraHeadHtml: cspTag,
         target: 'preview',
         resourceUrlTransformer,
-        diagramCache: options.diagramCache,
+        diagramCache: effectiveCache,
         defaultOptions: {
           plantuml: extSettings.plantuml,
         },
@@ -245,7 +325,7 @@ export class PreviewPanel implements vscode.Disposable {
           this.outputChannel.appendLine(event.message.trim());
           this.outputChannel.appendLine('----------------------------------------');
         },
-        onCacheEvent: (_event: any) => {
+        onCacheEvent: (_event: unknown) => {
           // Suppressed in standard preview to avoid cluttering the Output channel during typing.
         },
       });
@@ -255,7 +335,44 @@ export class PreviewPanel implements vscode.Disposable {
         return;
       }
 
-      this.panel.webview.html = html;
+      let clientScriptUri: vscode.Uri;
+      if (this.extensionUri) {
+        clientScriptUri = this.panel.webview.asWebviewUri(
+          vscode.Uri.joinPath(this.extensionUri, 'dist', 'preview', 'client', 'preview-client.js')
+        );
+      } else {
+        clientScriptUri = this.panel.webview.asWebviewUri(
+          vscode.Uri.file(path.join(__dirname, 'client', 'preview-client.js'))
+        );
+      }
+
+      const clientScriptTag = [
+        `<script nonce="${nonce}">var exports = exports || {};</script>`,
+        `<script nonce="${nonce}" src="${clientScriptUri}"></script>`,
+      ].join('\n');
+      const toolbarHtml = getPreviewToolbarHtml();
+
+      let finalHtml = html;
+      if (finalHtml.includes('<body')) {
+        finalHtml = finalHtml.replace(/<body([^>]*)>/, `<body$1>\n${toolbarHtml}<div class="preview-content-wrapper">`);
+      } else {
+        finalHtml = `${toolbarHtml}<div class="preview-content-wrapper">\n${finalHtml}`;
+      }
+      if (finalHtml.includes('</body>')) {
+        finalHtml = finalHtml.replace('</body>', `</div>\n${clientScriptTag}\n</body>`);
+      } else {
+        finalHtml = `${finalHtml}</div>\n${clientScriptTag}`;
+      }
+
+      this.panel.webview.html = finalHtml;
+
+      // Restore scroll position to Webview if previous position exists
+      if (this.lastScrollY > 0) {
+        void this.panel.webview.postMessage({
+          type: 'restoreScroll',
+          scrollY: this.lastScrollY,
+        });
+      }
 
       if (!isBackgroundRefresh && diagramErrorCount > 0 && !this.hasWarnedDiagramError) {
         this.hasWarnedDiagramError = true;
@@ -277,7 +394,8 @@ export class PreviewPanel implements vscode.Disposable {
    */
   private showError(error: unknown): void {
     const errorMessage = getErrorMessage(error);
-    const csp = buildPreviewCsp(this.panel.webview.cspSource);
+    const nonce = crypto.randomBytes(16).toString('base64');
+    const csp = buildPreviewCsp(this.panel.webview.cspSource, nonce);
 
     this.panel.webview.html = `
 <!DOCTYPE html>

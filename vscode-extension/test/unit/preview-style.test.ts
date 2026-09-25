@@ -2,6 +2,7 @@ import * as assert from 'node:assert/strict';
 import {
   buildPageDimensionStyle,
   getPreviewBaseStyle,
+  getPreviewToolbarHtml,
   resolvePagePadding,
   resolvePaperDimensions,
 } from '../../src/preview/preview-style.js';
@@ -69,6 +70,26 @@ describe('preview-style', () => {
       assert.match(css, /width:\s*297mm;/);
       assert.match(css, /min-height:\s*210mm;/);
       assert.match(css, /padding:\s*10mm 15mm 10mm 15mm;/);
+    });
+  });
+
+  describe('getPreviewToolbarHtml', () => {
+    it('should return HTML containing toolbar buttons and accessible elements', () => {
+      const html = getPreviewToolbarHtml();
+      assert.match(html, /class="preview-toolbar"/);
+      assert.match(html, /role="toolbar"/);
+      assert.match(html, /id="btn-toolbar-reload"/);
+      assert.match(html, /id="select-toolbar-zoom"/);
+      assert.match(html, /id="btn-toolbar-export"/);
+    });
+  });
+
+  describe('toolbar styles and print exclusion', () => {
+    it('should include preview-toolbar CSS and exclude it under @media print', () => {
+      const style = getPreviewBaseStyle();
+      assert.match(style, /\.preview-toolbar\s*\{/);
+      assert.match(style, /position:\s*sticky;/);
+      assert.match(style, /@media\s+print\s*\{[\s\S]*\.preview-toolbar\s*\{\s*display:\s*none\s*!important;/);
     });
   });
 });
