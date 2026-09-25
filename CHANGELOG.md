@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-25
+
+### Added
+
+- Editor-to-preview synchronized scrolling (Scroll Sync) with automatic source line mapping (`data-line`).
+- Sticky preview toolbar providing quick actions (Reload, Zoom toggle, Direct PDF export) excluded from print styles.
+- Cryptographic nonce-based dynamic Content Security Policy (CSP) allowing secure inline client scripts.
+- Official brand identity icons for Marketplace and dedicated editor title bar action icons supporting light and dark themes.
+
+### Improved
+
+- Preview scroll position preservation across document reloads, automatic refreshes, and panel re-openings (`vscode.setState`).
+- Toolbar offset compensation ensuring headings and targeted elements remain visible below the sticky bar.
+- Ping-pong scroll loop suppression with 300ms event muting during programmatic synchronization.
+
+### Known Limitations
+
+- Preview provides a PDF-like visual layout, not exact print-level pagination.
+- Diagram cache is in-memory only.
+
 ## [0.3.0] - 2026-09-14
 
 ### Added

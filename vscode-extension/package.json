@@ -2,7 +2,7 @@
   "name": "md-tech-pdf",
   "displayName": "md-tech-pdf",
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "ikaruga-tech",
   "icon": "media/icon.png",
   "license": "Apache-2.0",
