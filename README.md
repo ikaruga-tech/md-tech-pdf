@@ -257,8 +257,8 @@ Explore sample Markdown documents and configuration patterns in the [examples/](
 
 ### Prerequisites
 
-- Node.js `>= 20.0.0`
-- pnpm `>= 9.0.0`
+- Node.js `>= 22.13.0` (v24 LTS recommended)
+- pnpm `>= 10.0.0` (v11 recommended)
 
 ### Setup
 
@@ -290,7 +290,7 @@ pnpm format
 
 ## Known Limitations
 
-Current known limitations in the v0.1.0 release:
+Current known limitations in the v0.4.0 release:
 
 1. **Table Header Pagination (`<thead>`)**: Table headers do not repeat at the top of subsequent pages when a large table breaks across page boundaries.
 2. **Pre-Diagram Whitespace for Tall Diagrams**: Very tall diagrams (>150mm) are moved to the next page to avoid cross-page diagram clipping (`break-inside: avoid`), which may leave whitespace at the bottom of the preceding page.
