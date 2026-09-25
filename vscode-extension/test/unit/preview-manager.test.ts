@@ -1,9 +1,6 @@
 import * as assert from 'node:assert/strict';
 import type * as vscode from 'vscode';
-import {
-  type IPreviewPanelInstance,
-  PreviewManager,
-} from '../../src/preview/preview-manager.js';
+import { type IPreviewPanelInstance, PreviewManager } from '../../src/preview/preview-manager.js';
 
 class MockPreviewPanel implements IPreviewPanelInstance {
   public isRevealed = false;

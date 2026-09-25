@@ -1,10 +1,7 @@
 import * as assert from 'node:assert/strict';
 import './mock-vscode.js';
 import * as vscode from 'vscode';
-import {
-  type IPreviewPanelInstance,
-  PreviewManager,
-} from '../../src/preview/preview-manager.js';
+import { type IPreviewPanelInstance, PreviewManager } from '../../src/preview/preview-manager.js';
 
 class MockScrollSyncPanel implements IPreviewPanelInstance {
   public scrolledLines: number[] = [];
@@ -52,10 +49,7 @@ function createVisibleRangeEventMock(
       } as vscode.TextDocument,
     } as vscode.TextEditor,
     visibleRanges: [
-      new vscode.Range(
-        new vscode.Position(startLine, 0),
-        new vscode.Position(endLine, 0)
-      ),
+      new vscode.Range(new vscode.Position(startLine, 0), new vscode.Position(endLine, 0)),
     ],
   };
 }

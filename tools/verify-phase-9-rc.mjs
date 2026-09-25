@@ -5,7 +5,10 @@ import { execSync } from 'node:child_process';
 
 console.log('=== Phase 9 RC Comprehensive Verification Suite Started ===');
 
-const installedExtDir = path.join(os.homedir(), '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0');
+const installedExtDir = path.join(
+  os.homedir(),
+  '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0'
+);
 const installedCorePath = path.join(installedExtDir, 'node_modules/md-tech-pdf/dist/index.js');
 console.log('Loading Core from installed VSIX:', installedCorePath);
 
@@ -16,7 +19,7 @@ const plantumlJarCandidates = [
   path.join(os.homedir(), '.cursor/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
   '/usr/local/Cellar/plantuml/1.2026.6/libexec/plantuml.jar',
 ];
-const plantumlJar = plantumlJarCandidates.find(p => fs.existsSync(p)) || '';
+const plantumlJar = plantumlJarCandidates.find((p) => fs.existsSync(p)) || '';
 console.log('Detected PlantUML JAR:', plantumlJar);
 
 const scratchDir = path.resolve('scratch/phase-9-rc-tests');
@@ -93,7 +96,10 @@ This is a simple paragraph to test basic conversion.
   const mixedMdFile = path.join(scratchDir, 'mixed test document.md');
   fs.writeFileSync(mixedMdFile, mixedMd);
   await core.convertMarkdownToPdf(mixedMdFile, { output: mixedPdf });
-  record('Mixed text & alphanumeric export', fs.existsSync(mixedPdf) && fs.statSync(mixedPdf).size > 1000);
+  record(
+    'Mixed text & alphanumeric export',
+    fs.existsSync(mixedPdf) && fs.statSync(mixedPdf).size > 1000
+  );
 } catch (err) {
   record('Text Rendering', false, err.message);
 }
@@ -119,7 +125,10 @@ sequenceDiagram
   const mermaidMdFile = path.join(scratchDir, 'mermaid.md');
   fs.writeFileSync(mermaidMdFile, mermaidMd);
   await core.convertMarkdownToPdf(mermaidMdFile, { output: mermaidPdf });
-  record('Mermaid diagram rendering', fs.existsSync(mermaidPdf) && fs.statSync(mermaidPdf).size > 5000);
+  record(
+    'Mermaid diagram rendering',
+    fs.existsSync(mermaidPdf) && fs.statSync(mermaidPdf).size > 5000
+  );
 
   // Invalid Mermaid (should reject gracefully without extension crash)
   const invalidMermaidMd = `# Invalid Mermaid
@@ -132,7 +141,9 @@ this is completely invalid mermaid syntax 12345
   fs.writeFileSync(invalidMermaidMdFile, invalidMermaidMd);
   let mermaidErrorCaught = false;
   try {
-    await core.convertMarkdownToPdf(invalidMermaidMdFile, { output: path.join(scratchDir, 'should-fail.pdf') });
+    await core.convertMarkdownToPdf(invalidMermaidMdFile, {
+      output: path.join(scratchDir, 'should-fail.pdf'),
+    });
   } catch (err) {
     mermaidErrorCaught = true;
     record('Invalid Mermaid error handled gracefully', true, err.message.slice(0, 60));
@@ -165,7 +176,10 @@ WebApp --> User: Render
       output: plantumlPdf,
       config: { plantuml: { javaPath: 'java', jarPath: plantumlJar } },
     });
-    record('PlantUML diagram rendering', fs.existsSync(plantumlPdf) && fs.statSync(plantumlPdf).size > 5000);
+    record(
+      'PlantUML diagram rendering',
+      fs.existsSync(plantumlPdf) && fs.statSync(plantumlPdf).size > 5000
+    );
   } else {
     console.log('  [SKIP] PlantUML JAR not detected on system, skipping valid render');
   }
@@ -202,7 +216,9 @@ A -> B
 // -------------------------------------------------------------
 // 4. Front Matter, Tables, Code, Heading Orphans (Sec 31, 32, 35, 36, 38)
 // -------------------------------------------------------------
-console.log('\n--- 4. Testing Front Matter, Tables, Code, and Orphans (Sec 31, 32, 35, 36, 38) ---');
+console.log(
+  '\n--- 4. Testing Front Matter, Tables, Code, and Orphans (Sec 31, 32, 35, 36, 38) ---'
+);
 try {
   // Front Matter with custom layout and google fonts
   const fmDoc = `---
@@ -240,7 +256,10 @@ export const config = { endpoint: "https://api.service.internal.corp/v1/telemetr
   const fmFile = path.join(scratchDir, 'fm-test.md');
   fs.writeFileSync(fmFile, fmDoc);
   await core.convertMarkdownToPdf(fmFile, { output: fmPdf });
-  record('Front Matter + Table + Long Code export', fs.existsSync(fmPdf) && fs.statSync(fmPdf).size > 5000);
+  record(
+    'Front Matter + Table + Long Code export',
+    fs.existsSync(fmPdf) && fs.statSync(fmPdf).size > 5000
+  );
 
   // Document without Front Matter
   const noFmDoc = `# No Front Matter Document
@@ -251,7 +270,10 @@ Default options should be seamlessly applied here without errors.
   const noFmFile = path.join(scratchDir, 'no-fm.md');
   fs.writeFileSync(noFmFile, noFmDoc);
   await core.convertMarkdownToPdf(noFmFile, { output: noFmPdf });
-  record('Document without Front Matter export', fs.existsSync(noFmPdf) && fs.statSync(noFmPdf).size > 1000);
+  record(
+    'Document without Front Matter export',
+    fs.existsSync(noFmPdf) && fs.statSync(noFmPdf).size > 1000
+  );
 } catch (err) {
   record('Front Matter / Tables / Code', false, err.message);
 }
@@ -267,18 +289,28 @@ try {
   fs.writeFileSync(emptyFile, '');
   await core.convertMarkdownToPdf(emptyFile, { output: emptyPdf });
   const emptyPdfValid = fs.existsSync(emptyPdf) && fs.statSync(emptyPdf).size > 0;
-  record('Empty Markdown handled safely without crash', emptyPdfValid, `PDF size: ${fs.statSync(emptyPdf).size} bytes`);
+  record(
+    'Empty Markdown handled safely without crash',
+    emptyPdfValid,
+    `PDF size: ${fs.statSync(emptyPdf).size} bytes`
+  );
 
   // Permission error
   let permHandled = false;
   try {
-    await core.convertMarkdownToPdf(path.join(scratchDir, 'simple.md'), { output: '/System/Library/test.pdf' });
+    await core.convertMarkdownToPdf(path.join(scratchDir, 'simple.md'), {
+      output: '/System/Library/test.pdf',
+    });
   } catch (err) {
     permHandled = true;
     record('Permission error handled gracefully', true, err.message.slice(0, 60));
   }
   if (!permHandled) {
-    record('Permission error handled gracefully', false, 'Expected permission error was not caught');
+    record(
+      'Permission error handled gracefully',
+      false,
+      'Expected permission error was not caught'
+    );
   }
 } catch (err) {
   record('Edge Case Handling', false, err.message);
@@ -301,9 +333,15 @@ try {
 
   const baselineSize = fs.statSync(existingBaselinePdf).size;
   const vsixSize = fs.statSync(vsixSystemPdf).size;
-  const diffPercent = Math.abs(vsixSize - baselineSize) / baselineSize * 100;
-  console.log(`Baseline size: ${(baselineSize / 1024).toFixed(1)} KB, VSIX size: ${(vsixSize / 1024).toFixed(1)} KB, Diff: ${diffPercent.toFixed(2)}%`);
-  record('Long Document (system-design.md) consistency (<5% diff)', diffPercent < 5.0, `diff: ${diffPercent.toFixed(2)}%`);
+  const diffPercent = (Math.abs(vsixSize - baselineSize) / baselineSize) * 100;
+  console.log(
+    `Baseline size: ${(baselineSize / 1024).toFixed(1)} KB, VSIX size: ${(vsixSize / 1024).toFixed(1)} KB, Diff: ${diffPercent.toFixed(2)}%`
+  );
+  record(
+    'Long Document (system-design.md) consistency (<5% diff)',
+    diffPercent < 5.0,
+    `diff: ${diffPercent.toFixed(2)}%`
+  );
 } catch (err) {
   record('Long Document Consistency', false, err.message);
 }
@@ -317,7 +355,10 @@ try {
   execSync(`node dist/cli/index.js scratch/phase-9-rc-tests/simple.md -o "${cliPdf}"`, {
     stdio: 'pipe',
   });
-  record('CLI execution from command line', fs.existsSync(cliPdf) && fs.statSync(cliPdf).size > 1000);
+  record(
+    'CLI execution from command line',
+    fs.existsSync(cliPdf) && fs.statSync(cliPdf).size > 1000
+  );
 } catch (err) {
   record('CLI execution from command line', false, err.message);
 }

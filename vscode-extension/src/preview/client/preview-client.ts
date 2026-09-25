@@ -74,14 +74,14 @@ declare function acquireVsCodeApi(): VsCodeApi;
       const nextState: WebviewState = {
         ...existingState,
         scrollY,
-        scrollRatio
+        scrollRatio,
       };
 
       vscode?.setState(nextState);
       vscode?.postMessage({
         type: 'didScroll',
         scrollY,
-        scrollRatio
+        scrollRatio,
       });
     }, 100);
   });

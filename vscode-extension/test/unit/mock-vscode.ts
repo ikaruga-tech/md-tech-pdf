@@ -73,10 +73,16 @@ const mockVscode = {
     Two: 2,
   },
   Position: class {
-    constructor(public line: number, public character: number) {}
+    constructor(
+      public line: number,
+      public character: number
+    ) {}
   },
   Range: class {
-    constructor(public start: any, public end: any) {}
+    constructor(
+      public start: any,
+      public end: any
+    ) {}
   },
   EventEmitter: class {
     public event = () => ({ dispose: () => {} });
@@ -89,7 +95,12 @@ const mockVscode = {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Module = require('node:module');
 const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request: string, parent: unknown, isMain: boolean, options: unknown) {
+Module._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  isMain: boolean,
+  options: unknown
+) {
   if (request === 'vscode') {
     return 'vscode';
   }
@@ -101,5 +112,5 @@ require.cache['vscode'] = {
   filename: 'vscode',
   loaded: true,
   exports: mockVscode,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;

@@ -154,10 +154,7 @@ export class PreviewPanel implements vscode.Disposable {
         ? { settings: settingsOrOptions as ExtensionSettings }
         : ((settingsOrOptions as PreviewRenderOptions) ?? {});
 
-    const localResourceRoots = resolveLocalResourceRoots(
-      documentUri,
-      options.extensionUri
-    );
+    const localResourceRoots = resolveLocalResourceRoots(documentUri, options.extensionUri);
 
     const panel = vscode.window.createWebviewPanel(
       PreviewPanel.viewType,
@@ -247,9 +244,7 @@ export class PreviewPanel implements vscode.Disposable {
    * Reads Markdown content, parses Front Matter, and generates the preview HTML.
    * Tracks generation ID to discard stale render results from previous asynchronous requests.
    */
-  public async render(
-    settingsOrOptions?: ExtensionSettings | PreviewRenderOptions
-  ): Promise<void> {
+  public async render(settingsOrOptions?: ExtensionSettings | PreviewRenderOptions): Promise<void> {
     const options: PreviewRenderOptions =
       settingsOrOptions && 'plantuml' in settingsOrOptions
         ? { settings: settingsOrOptions as ExtensionSettings }
@@ -287,10 +282,7 @@ export class PreviewPanel implements vscode.Disposable {
 
       const nonce = crypto.randomBytes(16).toString('base64');
       const cspTag = buildPreviewCsp(this.panel.webview.cspSource, nonce);
-      const customCss = [
-        getPreviewBaseStyle(),
-        buildPageDimensionStyle(docOptions.pdf),
-      ].join('\n');
+      const customCss = [getPreviewBaseStyle(), buildPageDimensionStyle(docOptions.pdf)].join('\n');
 
       const resourceUrlTransformer = createResourceUrlTransformer(
         this.documentUri,
@@ -354,7 +346,10 @@ export class PreviewPanel implements vscode.Disposable {
 
       let finalHtml = html;
       if (finalHtml.includes('<body')) {
-        finalHtml = finalHtml.replace(/<body([^>]*)>/, `<body$1>\n${toolbarHtml}<div class="preview-content-wrapper">`);
+        finalHtml = finalHtml.replace(
+          /<body([^>]*)>/,
+          `<body$1>\n${toolbarHtml}<div class="preview-content-wrapper">`
+        );
       } else {
         finalHtml = `${toolbarHtml}<div class="preview-content-wrapper">\n${finalHtml}`;
       }

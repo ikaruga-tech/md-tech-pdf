@@ -74,7 +74,7 @@ pdf:
     left: 20mm
     right: 20mm
 fonts:
-  - name: "LINE Seed JP"
+  - name: 'LINE Seed JP'
     type: google
     weights: [400, 700]
 ---

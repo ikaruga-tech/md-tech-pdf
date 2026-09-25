@@ -4,7 +4,10 @@ import os from 'node:os';
 
 console.log('=== VSIX Installed Runtime Verification Started ===');
 
-const installedExtDir = path.join(os.homedir(), '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0');
+const installedExtDir = path.join(
+  os.homedir(),
+  '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0'
+);
 console.log('Installed extension dir:', installedExtDir);
 
 if (!fs.existsSync(installedExtDir)) {
@@ -111,7 +114,9 @@ await core.convertMarkdownToPdf(testDocPath, {
 
 if (fs.existsSync(testPdfPath)) {
   const pdfStats = fs.statSync(testPdfPath);
-  console.log(`PASS: PDF successfully generated! File size: ${(pdfStats.size / 1024).toFixed(1)} KB`);
+  console.log(
+    `PASS: PDF successfully generated! File size: ${(pdfStats.size / 1024).toFixed(1)} KB`
+  );
 } else {
   console.error('ERROR: Output PDF was not generated.');
   process.exit(1);
@@ -135,8 +140,14 @@ const checks = [
   { name: 'h6 weight 400', check: /h6\s*{[^}]*font-weight:\s*400/.test(style) },
   { name: 'strong, b weight 700', check: /strong,\s*b\s*{[^}]*font-weight:\s*700/.test(style) },
   { name: 'th weight 400', check: /table\s+th\s*{[^}]*font-weight:\s*400/.test(style) },
-  { name: 'th background #f0f3f6', check: /table\s+th\s*{[^}]*background-color:\s*#f0f3f6/.test(style) },
-  { name: 'th border-bottom 2px solid #cbd5e1', check: /table\s+th\s*{[^}]*border-bottom:\s*2px solid #cbd5e1/.test(style) },
+  {
+    name: 'th background #f0f3f6',
+    check: /table\s+th\s*{[^}]*background-color:\s*#f0f3f6/.test(style),
+  },
+  {
+    name: 'th border-bottom 2px solid #cbd5e1',
+    check: /table\s+th\s*{[^}]*border-bottom:\s*2px solid #cbd5e1/.test(style),
+  },
   { name: 'code weight 400', check: /code\s*{[^}]*font-weight:\s*400/.test(style) },
   { name: 'pre weight 400', check: /pre\s*{[^}]*font-weight:\s*400/.test(style) },
   { name: 'LINE Seed JP font link', check: fontsUrl.includes('family=LINE+Seed+JP:wght@400;700') },

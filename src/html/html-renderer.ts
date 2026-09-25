@@ -8,7 +8,6 @@ import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
 import {
   type IDiagramRenderCache,
-  DiagramRenderCache,
   computeDiagramCacheKey,
 } from '../renderer/diagram-cache.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
@@ -292,10 +291,7 @@ export class HtmlRenderer {
         }
         let containerHtml = buildDiagramContainer(svg, item.block.options);
         if (options?.target === 'preview' && item.block.line) {
-          containerHtml = containerHtml.replace(
-            /^<div\b/,
-            `<div data-line="${item.block.line}"`
-          );
+          containerHtml = containerHtml.replace(/^<div\b/, `<div data-line="${item.block.line}"`);
         }
 
         const targetToken = tokens[item.index];
@@ -307,16 +303,9 @@ export class HtmlRenderer {
           const rawMsg = err instanceof Error ? err.message : String(err);
           // Strip verbose/stack details for preview UI
           const userMsg = rawMsg.split('\n')[0].replace(/^Error:\s*/, '');
-          let errorHtml = buildDiagramErrorContainer(
-            item.block.type,
-            userMsg,
-            item.block.options
-          );
+          let errorHtml = buildDiagramErrorContainer(item.block.type, userMsg, item.block.options);
           if (item.block.line) {
-            errorHtml = errorHtml.replace(
-              /^<div\b/,
-              `<div data-line="${item.block.line}"`
-            );
+            errorHtml = errorHtml.replace(/^<div\b/, `<div data-line="${item.block.line}"`);
           }
 
           const targetToken = tokens[item.index];

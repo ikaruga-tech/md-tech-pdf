@@ -102,9 +102,7 @@ export class PreviewManager implements vscode.Disposable {
     }
     if (vscode.window?.onDidChangeTextEditorVisibleRanges) {
       this.disposables.push(
-        vscode.window.onDidChangeTextEditorVisibleRanges((e) =>
-          this.handleVisibleRangesChange(e)
-        )
+        vscode.window.onDidChangeTextEditorVisibleRanges((e) => this.handleVisibleRangesChange(e))
       );
     }
   }

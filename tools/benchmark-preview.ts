@@ -32,14 +32,22 @@ async function measure(name: string, filePath: string) {
   const min = Math.min(...times);
   const max = Math.max(...times);
 
-  console.log(`[${name}] Avg: ${avg.toFixed(2)}ms | Min: ${min.toFixed(2)}ms | Max: ${max.toFixed(2)}ms (Runs: ${runs})`);
+  console.log(
+    `[${name}] Avg: ${avg.toFixed(2)}ms | Min: ${min.toFixed(2)}ms | Max: ${max.toFixed(2)}ms (Runs: ${runs})`
+  );
 }
 
 async function run() {
   console.log('=== Performance Baseline Measurement (target: preview) ===');
-  await measure('Small Document (markdown-elements.md, no diagrams)', 'examples/preview/markdown-elements.md');
+  await measure(
+    'Small Document (markdown-elements.md, no diagrams)',
+    'examples/preview/markdown-elements.md'
+  );
   await measure('Medium Document (README.md, text/tables)', 'README.md');
-  await measure('Large Real-World Document (system-design.md, with diagrams)', 'examples/real-world/system-design.md');
+  await measure(
+    'Large Real-World Document (system-design.md, with diagrams)',
+    'examples/real-world/system-design.md'
+  );
 }
 
 run().catch((err) => {

@@ -1,9 +1,6 @@
 import * as assert from 'node:assert/strict';
 import * as path from 'node:path';
-import {
-  parseExtensionSettings,
-  resolveCustomOutputPath,
-} from '../../src/config/settings.js';
+import { parseExtensionSettings, resolveCustomOutputPath } from '../../src/config/settings.js';
 
 describe('extension-settings', () => {
   describe('parseExtensionSettings', () => {
@@ -79,10 +76,7 @@ describe('extension-settings', () => {
       const workspace = path.join('/work', 'project');
       const input = path.join('/work', 'project', 'docs', 'sample.md');
       const expected = path.join('/work', 'project', 'generated', 'pdf', 'sample.pdf');
-      assert.strictEqual(
-        resolveCustomOutputPath(input, 'generated/pdf', workspace),
-        expected
-      );
+      assert.strictEqual(resolveCustomOutputPath(input, 'generated/pdf', workspace), expected);
     });
 
     it('should resolve absolute output directory without using workspace', () => {

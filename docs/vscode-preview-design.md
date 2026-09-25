@@ -60,11 +60,11 @@
 
 ### 3.1 表示方式の比較検討
 
-| 方式 | 特徴 | 採用可否 | 理由 |
-| --- | --- | --- | --- |
-| A: WebviewPanel | 独立したタブとしてエディタ横に表示 | 採用 | 編集とプレビューの並列表示（Side-by-Side）に最適であり、Coreが生成するHTML/CSS/インラインSVGを完全制御可能。 |
-| B: Custom Editor | ファイルを開くエディタ自体をWebviewで置き換え | 不採用 | Markdownテキストを編集しながら確認する標準UXに反し、シンタックスハイライト等のエディタ機能を失う。 |
-| C: 標準Markdown Preview拡張 | VS Code標準のMarkdownプレビューにプラグイン注入 | 不採用 | 標準プレビューのテーマCSSが強力に干渉し、PDF出力専用のタイポグラフィやA4用紙余白レイアウトが破壊される。 |
+| 方式                        | 特徴                                            | 採用可否 | 理由                                                                                                         |
+| --------------------------- | ----------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| A: WebviewPanel             | 独立したタブとしてエディタ横に表示              | 採用     | 編集とプレビューの並列表示（Side-by-Side）に最適であり、Coreが生成するHTML/CSS/インラインSVGを完全制御可能。 |
+| B: Custom Editor            | ファイルを開くエディタ自体をWebviewで置き換え   | 不採用   | Markdownテキストを編集しながら確認する標準UXに反し、シンタックスハイライト等のエディタ機能を失う。           |
+| C: 標準Markdown Preview拡張 | VS Code標準のMarkdownプレビューにプラグイン注入 | 不採用   | 標準プレビューのテーマCSSが強力に干渉し、PDF出力専用のタイポグラフィやA4用紙余白レイアウトが破壊される。     |
 
 ### 3.2 採用方式 VS Code WebviewPanel
 
@@ -108,7 +108,7 @@ export interface HtmlRenderOptions {
   documentOptions?: DocumentOptions;
   defaultOptions?: DocumentOptions;
   target?: RenderTarget; // デフォルトは 'pdf'
-  cspSource?: string;     // Webview CSP生成用
+  cspSource?: string; // Webview CSP生成用
   localResourceRoots?: string[];
 }
 ```
@@ -131,14 +131,14 @@ export interface HtmlRenderOptions {
 
 ### 5.2 Front Matterパラメータの反映仕様
 
-| Front Matter項目 | プレビューへの反映方法 |
-| --- | --- |
-| `pdf.format` (A4, A3, Letter等) | 用紙コンテナの幅（例: A4縦なら 210mm、Letterなら 8.5in）として反映。 |
-| `pdf.landscape` (true / false) | 横向き指定時、用紙コンテナの幅と最小高さを反転（A4横なら 幅297mm、最小高さ210mm）。 |
-| `pdf.margin` (top, right, bottom, left) | 用紙コンテナの `padding` にマッピング。 |
-| `style.font` (family, codeFamily) | プレビュー本文およびコードブロックのフォントファミリーに直接適用。 |
-| `style.font.google` | Google Fontsの読み込みリンクを生成し適用。 |
-| `mermaid.theme` | Mermaidの描画テーマ（default, neutral, dark等）に反映。 |
+| Front Matter項目                        | プレビューへの反映方法                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `pdf.format` (A4, A3, Letter等)         | 用紙コンテナの幅（例: A4縦なら 210mm、Letterなら 8.5in）として反映。                |
+| `pdf.landscape` (true / false)          | 横向き指定時、用紙コンテナの幅と最小高さを反転（A4横なら 幅297mm、最小高さ210mm）。 |
+| `pdf.margin` (top, right, bottom, left) | 用紙コンテナの `padding` にマッピング。                                             |
+| `style.font` (family, codeFamily)       | プレビュー本文およびコードブロックのフォントファミリーに直接適用。                  |
+| `style.font.google`                     | Google Fontsの読み込みリンクを生成し適用。                                          |
+| `mermaid.theme`                         | Mermaidの描画テーマ（default, neutral, dark等）に反映。                             |
 
 ### 5.3 改ページ境界の視覚的表現
 
@@ -205,12 +205,15 @@ JavaScript実行は `enableScripts: false` およびCSPにより強力に抑制�
 Webviewの `<head>` 内に以下のCSPメタタグを注入します。
 
 ```html
-<meta http-equiv="Content-Security-Policy" content="
+<meta
+  http-equiv="Content-Security-Policy"
+  content="
   default-src 'none';
   img-src ${webview.cspSource} data: https:;
   style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com;
   font-src ${webview.cspSource} data: https://fonts.gstatic.com;
-">
+"
+/>
 ```
 
 - `default-src 'none'`: 未許可のリソースへのアクセスを全遮断。
@@ -418,13 +421,13 @@ Phase 13における品質検証およびCore/PDF整合性確立の成果と設�
 
 ### 16.5 プレビューとPDFの既知の相違点
 
-| 項目 | VS Code プレビュー | PDF 出力 (Playwright) |
-| --- | --- | --- |
-| 描画エンジン | VS Code Webview (Electron Chromium) | Playwright Chromium Headless |
-| 改ページ | 連続スクロール（1つの長い用紙シート） | 物理的なページ分割（A4複数ページ） |
-| ヘッダー・フッター | 非表示（Phase 13時点） | PDF生成オプションにより付与可能 |
-| ローカル画像パス | 相対パスはPhase 15まで未解決 | ローカルパスを直接読み込み表示 |
-| フォント取得 | Webview CSP制限下でGoogle Fonts / ローカルフォント | システムフォント / Webフォント読み込み |
+| 項目               | VS Code プレビュー                                 | PDF 出力 (Playwright)                  |
+| ------------------ | -------------------------------------------------- | -------------------------------------- |
+| 描画エンジン       | VS Code Webview (Electron Chromium)                | Playwright Chromium Headless           |
+| 改ページ           | 連続スクロール（1つの長い用紙シート）              | 物理的なページ分割（A4複数ページ）     |
+| ヘッダー・フッター | 非表示（Phase 13時点）                             | PDF生成オプションにより付与可能        |
+| ローカル画像パス   | 相対パスはPhase 15まで未解決                       | ローカルパスを直接読み込み表示         |
+| フォント取得       | Webview CSP制限下でGoogle Fonts / ローカルフォント | システムフォント / Webフォント読み込み |
 
 ### 16.6 パフォーマンスベースライン計測結果
 
@@ -678,17 +681,17 @@ v0.3.0 においては、`DOMPurify` や `sanitize-html` などのサードパ�
 
 Markdown 内の画像やリンク等で使用されるスキームは、以下の方針で統一的に処理されます。
 
-| スキーム / 形式 | 処理方針 | 理由・セキュリティ動作 |
-| --- | --- | --- |
-| `https:` | そのまま維持 | CSP の `img-src https:` により外部安全通信として許可。 |
-| `data:` | そのまま維持 | インライン SVG や base64 画像として許可。 |
-| 相対パス (`./`, `../`) | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。 |
-| `file:` | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。 |
-| `http:` | そのまま維持 | ローカル解決は行わない。CSP の `img-src` で許可されないためプレビューでは読み込めません（未サポート）。 |
-| `javascript:` | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。 |
-| `vbscript:` | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。 |
-| `vscode-webview:` | 空文字 `''` に置換 | ユーザー Markdown 内からの内部スキーム偽装・悪用を防止するため拒絶（拡張機能自身が `asWebviewUri` で生成する URI は正常に処理されます）。 |
-| `vscode-resource:` | 空文字 `''` に置換 | レガシー内部スキームの悪用を防止するため拒絶。 |
+| スキーム / 形式        | 処理方針           | 理由・セキュリティ動作                                                                                                                    |
+| ---------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `https:`               | そのまま維持       | CSP の `img-src https:` により外部安全通信として許可。                                                                                    |
+| `data:`                | そのまま維持       | インライン SVG や base64 画像として許可。                                                                                                 |
+| 相対パス (`./`, `../`) | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。                                                                          |
+| `file:`                | Webview URI に変換 | 境界ディレクトリ配下であることを検証後に `asWebviewUri` へ変換。                                                                          |
+| `http:`                | そのまま維持       | ローカル解決は行わない。CSP の `img-src` で許可されないためプレビューでは読み込めません（未サポート）。                                   |
+| `javascript:`          | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。                                                                                                        |
+| `vbscript:`            | 空文字 `''` に置換 | スクリプト実行スキームのため拒絶。                                                                                                        |
+| `vscode-webview:`      | 空文字 `''` に置換 | ユーザー Markdown 内からの内部スキーム偽装・悪用を防止するため拒絶（拡張機能自身が `asWebviewUri` で生成する URI は正常に処理されます）。 |
+| `vscode-resource:`     | 空文字 `''` に置換 | レガシー内部スキームの悪用を防止するため拒絶。                                                                                            |
 
 ### 20.4 シンボリックリンクとパストラバーサル防御方針
 

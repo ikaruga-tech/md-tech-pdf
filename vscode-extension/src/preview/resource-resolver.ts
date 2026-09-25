@@ -73,8 +73,7 @@ export function createResourceUrlTransformer(
   webview: vscode.Webview,
   outputChannel?: vscode.OutputChannel
 ): (rawUrl: string) => string {
-  const docDir =
-    documentUri.scheme === 'file' ? path.dirname(documentUri.fsPath) : undefined;
+  const docDir = documentUri.scheme === 'file' ? path.dirname(documentUri.fsPath) : undefined;
 
   // Determine security boundary directory:
   // - If the document belongs to a workspace folder: workspace folder root
@@ -92,10 +91,7 @@ export function createResourceUrlTransformer(
     }
 
     // 1. Immediately preserve remote HTTPS and data URIs
-    if (
-      trimmed.startsWith('https://') ||
-      trimmed.startsWith('data:')
-    ) {
+    if (trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
       return rawUrl;
     }
 

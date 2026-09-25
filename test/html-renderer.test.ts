@@ -267,9 +267,7 @@ Conclusion paragraph.
 
     it('should throw DiagramRenderError when target is pdf or undefined', async () => {
       await expect(renderer.render(brokenMermaidMarkdown)).rejects.toThrow();
-      await expect(
-        renderer.render(brokenMermaidMarkdown, { target: 'pdf' })
-      ).rejects.toThrow();
+      await expect(renderer.render(brokenMermaidMarkdown, { target: 'pdf' })).rejects.toThrow();
     });
 
     it('should recover gracefully and embed error container without failing document when target is preview', async () => {
@@ -348,10 +346,7 @@ invalid broken syntax ???
         },
       });
 
-      expect(transformedUrls).toEqual([
-        './images/sample.png',
-        'https://example.com/logo.svg',
-      ]);
+      expect(transformedUrls).toEqual(['./images/sample.png', 'https://example.com/logo.svg']);
       expect(html).toContain(
         '<img src="vscode-webview://transformed/images/sample.png" alt="Local Image" title="Sample Title">'
       );
@@ -407,11 +402,7 @@ invalid broken syntax ???
     });
 
     it('should NOT inject data-line attributes when target is pdf or undefined', async () => {
-      const markdown = [
-        '# Heading 1',
-        '',
-        'A paragraph here.',
-      ].join('\n');
+      const markdown = ['# Heading 1', '', 'A paragraph here.'].join('\n');
 
       const defaultHtml = await renderer.render(markdown);
       expect(defaultHtml).not.toContain('data-line=');
@@ -425,4 +416,3 @@ invalid broken syntax ???
     });
   });
 });
-

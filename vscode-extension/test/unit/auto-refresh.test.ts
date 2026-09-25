@@ -1,10 +1,7 @@
 import * as assert from 'node:assert/strict';
 import { clearMockConfiguration, setMockConfiguration } from './mock-vscode.js';
 import * as vscode from 'vscode';
-import {
-  type IPreviewPanelInstance,
-  PreviewManager,
-} from '../../src/preview/preview-manager.js';
+import { type IPreviewPanelInstance, PreviewManager } from '../../src/preview/preview-manager.js';
 import type { PreviewRenderOptions } from '../../src/preview/preview-panel.js';
 
 class MockRefreshPanel implements IPreviewPanelInstance {

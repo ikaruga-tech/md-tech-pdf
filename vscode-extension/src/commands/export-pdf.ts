@@ -6,11 +6,7 @@ import {
   resolveCustomOutputPath,
 } from '../config/extension-settings.js';
 import { getErrorMessage } from '../utils/error-utils.js';
-import {
-  createPdfOutputPath,
-  ensurePdfExtension,
-  isMarkdownPath,
-} from '../utils/path-utils.js';
+import { createPdfOutputPath, ensurePdfExtension, isMarkdownPath } from '../utils/path-utils.js';
 
 export {
   createPdfOutputPath,

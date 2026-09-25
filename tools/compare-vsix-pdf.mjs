@@ -4,7 +4,10 @@ import os from 'node:os';
 
 console.log('=== VSIX PDF Comparison Started ===');
 
-const installedExtDir = path.join(os.homedir(), '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0');
+const installedExtDir = path.join(
+  os.homedir(),
+  '.vscode/extensions/ikaruga-tech.md-tech-pdf-0.2.0'
+);
 const installedCorePath = path.join(installedExtDir, 'node_modules/md-tech-pdf/dist/index.js');
 const core = await import(installedCorePath);
 
@@ -33,7 +36,7 @@ const vsixStats = fs.statSync(vsixGeneratedPdf);
 console.log('Existing baseline PDF size:', (existingStats.size / 1024).toFixed(1), 'KB');
 console.log('VSIX-generated PDF size:', (vsixStats.size / 1024).toFixed(1), 'KB');
 
-const sizeDiffPercent = Math.abs(vsixStats.size - existingStats.size) / existingStats.size * 100;
+const sizeDiffPercent = (Math.abs(vsixStats.size - existingStats.size) / existingStats.size) * 100;
 console.log('Size difference:', sizeDiffPercent.toFixed(2), '%');
 
 if (sizeDiffPercent < 5.0) {

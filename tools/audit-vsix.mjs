@@ -67,13 +67,15 @@ if (foundUnwanted.length === 0) {
 }
 
 // Check if any test fixtures, generated PDFs, or comparison PNGs in entire archive
-const generatedPdfs = allFiles.filter(f => f.endsWith('.pdf'));
+const generatedPdfs = allFiles.filter((f) => f.endsWith('.pdf'));
 console.log('PDF files in VSIX:', generatedPdfs.length);
 
 // 2. Check for Chromium / browser binaries
 console.log('\n--- 2. Checking for Browser Binaries in VSIX ---');
-const browserBinaries = allFiles.filter(f =>
-  /chrome|chromium|playwright\/\.local-browsers/i.test(f) && (f.endsWith('.exe') || f.endsWith('.app') || !path.extname(f))
+const browserBinaries = allFiles.filter(
+  (f) =>
+    /chrome|chromium|playwright\/\.local-browsers/i.test(f) &&
+    (f.endsWith('.exe') || f.endsWith('.app') || !path.extname(f))
 );
 console.log('Browser binaries count:', browserBinaries.length);
 if (browserBinaries.length === 0) {
@@ -84,11 +86,12 @@ if (browserBinaries.length === 0) {
 
 // 3. Scan for local absolute paths (/Users/...) and credentials in extension source
 console.log('\n--- 3. Scanning for Local Absolute Paths & Credentials ---');
-const sourceFilesToCheck = allFiles.filter(f =>
-  f.startsWith('extension/dist/') ||
-  f === 'extension/package.json' ||
-  f === 'extension/readme.md' ||
-  f === 'extension.vsixmanifest'
+const sourceFilesToCheck = allFiles.filter(
+  (f) =>
+    f.startsWith('extension/dist/') ||
+    f === 'extension/package.json' ||
+    f === 'extension/readme.md' ||
+    f === 'extension.vsixmanifest'
 );
 
 let suspiciousCount = 0;
@@ -127,7 +130,9 @@ for (const f of allFiles) {
   const size = fs.statSync(path.join(tmpDir, f)).size;
   dirSizes[top] = (dirSizes[top] || 0) + size;
 }
-const sorted = Object.entries(dirSizes).sort((a, b) => b[1] - a[1]).slice(0, 10);
+const sorted = Object.entries(dirSizes)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10);
 for (const [d, s] of sorted) {
   console.log(`${(s / (1024 * 1024)).toFixed(2)} MB : ${d}`);
 }

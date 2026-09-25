@@ -45,7 +45,7 @@ Sixth level heading displayed in muted text color.
 
 ## Text Formatting and Typography
 
-Standard paragraph text test. Technical documentation requires clear distinction between regular text, **bold weight text**, *italic text*, and ~~strikethrough text~~.
+Standard paragraph text test. Technical documentation requires clear distinction between regular text, **bold weight text**, _italic text_, and ~~strikethrough text~~.
 
 Japanese text mixed with English: 本文書は、md-tech-pdfにおけるMarkdownプレビュー表示品質とPDF出力の整合性を検証するためのフィクスチャ文書です。Google Fonts（Noto Sans JP / Roboto Mono）の適用状況、Pattern Dタイポグラフィ（本文10.5pt、行送り1.7）の描画品質を確認します。
 
@@ -123,11 +123,11 @@ Task list:
 
 Table with alignment and varied content widths:
 
-| Item ID | Component Name | Description | Status | Latency |
-| :--- | :--- | :--- | :---: | ---: |
-| COMP-01 | HtmlRenderer | Converts Markdown to HTML document | Ready | 45ms |
-| COMP-02 | PreviewPanel | Manages WebviewPanel instance | Ready | 12ms |
-| COMP-03 | DiagramRenderer | Executes Mermaid and PlantUML | Standby | 320ms |
+| Item ID | Component Name  | Description                        | Status  | Latency |
+| :------ | :-------------- | :--------------------------------- | :-----: | ------: |
+| COMP-01 | HtmlRenderer    | Converts Markdown to HTML document |  Ready  |    45ms |
+| COMP-02 | PreviewPanel    | Manages WebviewPanel instance      |  Ready  |    12ms |
+| COMP-03 | DiagramRenderer | Executes Mermaid and PlantUML      | Standby |   320ms |
 
 ## Images
 

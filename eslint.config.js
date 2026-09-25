@@ -24,10 +24,9 @@ export default tsPlugin.config(
       'node_modules/**',
       'generated/**',
       'coverage/**',
-      'vscode-extension/dist/**',
-      'vscode-extension/out/**',
-      'vscode-extension/node_modules/**',
-      'vscode-extension/.vscode-test/**',
+      'scratch/**',
+      'vscode-extension/**',
+      'tools/**',
       '.vscode-test/**',
     ],
   }

@@ -111,6 +111,10 @@ describe('Extension Integration Tests', () => {
     const document = await vscode.workspace.openTextDocument(sampleUri);
 
     assert.ok(document, 'Should open fixture sample.md');
-    assert.strictEqual(isMarkdownDocument(document), true, 'sample.md must be recognized as Markdown document');
+    assert.strictEqual(
+      isMarkdownDocument(document),
+      true,
+      'sample.md must be recognized as Markdown document'
+    );
   });
 });

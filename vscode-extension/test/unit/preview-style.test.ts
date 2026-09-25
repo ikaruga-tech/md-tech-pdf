@@ -89,7 +89,10 @@ describe('preview-style', () => {
       const style = getPreviewBaseStyle();
       assert.match(style, /\.preview-toolbar\s*\{/);
       assert.match(style, /position:\s*sticky;/);
-      assert.match(style, /@media\s+print\s*\{[\s\S]*\.preview-toolbar\s*\{\s*display:\s*none\s*!important;/);
+      assert.match(
+        style,
+        /@media\s+print\s*\{[\s\S]*\.preview-toolbar\s*\{\s*display:\s*none\s*!important;/
+      );
     });
   });
 });

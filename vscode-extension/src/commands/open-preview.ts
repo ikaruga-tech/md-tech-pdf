@@ -40,9 +40,7 @@ export async function resolvePreviewTargetUri(
 
   const editor = vscode.window.activeTextEditor;
   if (!editor || !isMarkdownDocument(editor.document)) {
-    await vscode.window.showWarningMessage(
-      'md-tech-pdf: Open a Markdown file before previewing.'
-    );
+    await vscode.window.showWarningMessage('md-tech-pdf: Open a Markdown file before previewing.');
     return undefined;
   }
 

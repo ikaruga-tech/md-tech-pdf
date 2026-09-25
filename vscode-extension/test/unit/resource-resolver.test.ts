@@ -64,10 +64,7 @@ describe('resource-resolver', () => {
         isPathWithinBoundary(boundary, path.resolve('/workspace/other-project/image.png')),
         false
       );
-      assert.strictEqual(
-        isPathWithinBoundary(boundary, path.resolve('/etc/passwd')),
-        false
-      );
+      assert.strictEqual(isPathWithinBoundary(boundary, path.resolve('/etc/passwd')), false);
     });
   });
 
@@ -149,7 +146,9 @@ describe('resource-resolver', () => {
       // Traversal attempt should be rejected and original string returned
       assert.strictEqual(result, traversalPath);
       assert.ok(
-        loggedLines.some((l) => l.includes('Access denied: resource path is outside the allowed boundary'))
+        loggedLines.some((l) =>
+          l.includes('Access denied: resource path is outside the allowed boundary')
+        )
       );
       assert.ok(loggedLines.some((l) => l.includes('Document: guide.md')));
       assert.ok(loggedLines.some((l) => l.includes(`Resource: ${traversalPath}`)));
@@ -160,7 +159,11 @@ describe('resource-resolver', () => {
 
       const standalonePath = path.resolve('/standalone/folder/sub/standalone.md');
       const standaloneUri = vscode.Uri.file(standalonePath);
-      const transformer = createResourceUrlTransformer(standaloneUri, mockWebview, mockOutputChannel);
+      const transformer = createResourceUrlTransformer(
+        standaloneUri,
+        mockWebview,
+        mockOutputChannel
+      );
 
       // Sibling file in same directory is allowed
       const resultAllowed = transformer('./image.png');
@@ -171,7 +174,9 @@ describe('resource-resolver', () => {
       const resultDenied = transformer('../parent-image.png');
       assert.strictEqual(resultDenied, '../parent-image.png');
       assert.ok(
-        loggedLines.some((l) => l.includes('Access denied: resource path is outside the allowed boundary'))
+        loggedLines.some((l) =>
+          l.includes('Access denied: resource path is outside the allowed boundary')
+        )
       );
     });
 
@@ -184,7 +189,8 @@ describe('resource-resolver', () => {
 
     it('should preserve data URI images unchanged', () => {
       const transformer = createResourceUrlTransformer(docUri, mockWebview, mockOutputChannel);
-      const dataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const dataUri =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
       const result = transformer(dataUri);
       assert.strictEqual(result, dataUri);
     });
@@ -207,7 +213,9 @@ describe('resource-resolver', () => {
       const result = transformer(encodedTraversal);
       assert.strictEqual(result, encodedTraversal);
       assert.ok(
-        loggedLines.some((l) => l.includes('Access denied: resource path is outside the allowed boundary'))
+        loggedLines.some((l) =>
+          l.includes('Access denied: resource path is outside the allowed boundary')
+        )
       );
     });
 

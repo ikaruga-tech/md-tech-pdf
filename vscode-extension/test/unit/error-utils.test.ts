@@ -21,7 +21,9 @@ describe('error-utils', () => {
     });
 
     it('should extract only the first line for multiline error messages', () => {
-      const multilineError = new Error('Primary error message\n  at /path/to/file.ts:12:34\n  at processTicks');
+      const multilineError = new Error(
+        'Primary error message\n  at /path/to/file.ts:12:34\n  at processTicks'
+      );
       assert.strictEqual(getErrorMessage(multilineError), 'Primary error message');
     });
 

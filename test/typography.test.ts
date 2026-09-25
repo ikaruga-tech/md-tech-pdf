@@ -30,7 +30,8 @@ describe('Typography & Pattern D styles (Phase 7.5-D)', () => {
 
   it('should include Pattern D styles in rendered HTML document', async () => {
     const renderer = new HtmlRenderer();
-    const md = '# Title\n\n## Section\n\n### Sub\n\n#### Item\n\n**Bold**\n\n| H1 | H2 |\n|---|---|\n| C1 | C2 |';
+    const md =
+      '# Title\n\n## Section\n\n### Sub\n\n#### Item\n\n**Bold**\n\n| H1 | H2 |\n|---|---|\n| C1 | C2 |';
     const html = await renderer.render(md, { title: 'Test' });
 
     expect(html).toContain('font-weight: 700;');
