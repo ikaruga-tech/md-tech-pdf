@@ -107,9 +107,11 @@ Thumbs.db
 *.png
 *.svg
 
-# Keep sample images
+# Keep sample images and extension media
 !examples/**/*.png
 !examples/**/*.svg
+!vscode-extension/media/**/*.png
+!vscode-extension/media/**/*.svg
 
 # ==========================
 # Package Manager

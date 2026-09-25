@@ -4,6 +4,7 @@
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
   "version": "0.3.0",
   "publisher": "ikaruga-tech",
+  "icon": "media/icon.png",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -35,11 +36,21 @@
     "commands": [
       {
         "command": "md-tech-pdf.openPreview",
-        "title": "md-tech-pdf: Open Preview"
+        "title": "md-tech-pdf: Open Preview",
+        "shortTitle": "Open Preview",
+        "icon": {
+          "light": "./media/preview-light.svg",
+          "dark": "./media/preview-dark.svg"
+        }
       },
       {
         "command": "md-tech-pdf.exportPdf",
-        "title": "md-tech-pdf: Export to PDF"
+        "title": "md-tech-pdf: Export to PDF",
+        "shortTitle": "Export to PDF",
+        "icon": {
+          "light": "./media/export-light.svg",
+          "dark": "./media/export-dark.svg"
+        }
       },
       {
         "command": "md-tech-pdf.exportPdfAs",
