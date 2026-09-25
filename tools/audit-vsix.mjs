@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-const vsixPath = path.resolve('vscode-extension/md-tech-pdf-0.2.0.vsix');
+const vsixPath = path.resolve(process.argv[2] || 'vscode-extension/md-tech-pdf-0.4.1.vsix');
 const tmpDir = path.resolve('scratch/vsix-audit');
 
 console.log('=== VSIX Audit Started ===');

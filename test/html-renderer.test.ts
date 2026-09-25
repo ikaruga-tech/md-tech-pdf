@@ -415,6 +415,24 @@ invalid broken syntax ???
       expect(html).toMatch(/<div\s+data-line="9"\s+class="md-tech-diagram/);
     });
 
+    it('should calculate data-line with Front Matter line offset', async () => {
+      const markdown = [
+        '---',
+        'title: Document Title',
+        'pdf:',
+        '  format: A4',
+        '---',
+        '',
+        '# First Heading', // line 7 (5 lines frontmatter + 1 empty line + 1)
+        '',
+        'A paragraph with front matter.', // line 9
+      ].join('\n');
+
+      const html = await renderer.render(markdown, { target: 'preview' });
+      expect(html).toContain('<h1 data-line="7">First Heading</h1>');
+      expect(html).toContain('<p data-line="9">A paragraph with front matter.</p>');
+    });
+
     it('should NOT inject data-line attributes when target is pdf or undefined', async () => {
       const markdown = ['# Heading 1', '', 'A paragraph here.'].join('\n');
 

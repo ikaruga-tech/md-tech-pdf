@@ -107,7 +107,11 @@ export class HtmlRenderer {
    */
   async render(markdown: string, options?: HtmlRenderOptions): Promise<string> {
     // 1. Extract Front Matter and separate body content
-    const { content: markdownBody, options: parsedDocOptions } = parseFrontMatter(markdown);
+    const {
+      content: markdownBody,
+      options: parsedDocOptions,
+      lineOffset = 0,
+    } = parseFrontMatter(markdown);
 
     // Merge document options:
     // priority: options.documentOptions > parsedDocOptions (Front Matter) > options.defaultOptions (App/VS Code settings)
@@ -212,7 +216,7 @@ export class HtmlRenderer {
         continue;
       }
 
-      const line = token.map ? token.map[0] + 1 : undefined;
+      const line = token.map ? token.map[0] + 1 + lineOffset : undefined;
       const rawRest = match[2].trim();
       let attributesString: string | undefined;
 
@@ -331,7 +335,7 @@ export class HtmlRenderer {
     if (options?.target === 'preview') {
       for (const token of tokens) {
         if (token.map && token.map.length >= 1) {
-          const line = token.map[0] + 1;
+          const line = token.map[0] + 1 + lineOffset;
           if (
             token.type.endsWith('_open') ||
             token.type === 'fence' ||

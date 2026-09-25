@@ -90,6 +90,15 @@ body {
   background-color: var(--vscode-button-hoverBackground, #1177bb);
 }
 
+.toolbar-btn-active {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.toolbar-btn-active:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
 .toolbar-select {
   background-color: var(--vscode-dropdown-background, #252526);
   color: var(--vscode-dropdown-foreground, #cccccc);
@@ -109,7 +118,6 @@ body {
   justify-content: safe center;
   align-items: flex-start;
   background-color: var(--vscode-editor-background, #1e1e1e);
-  overflow-y: auto;
   overflow-x: auto;
 }
 
@@ -143,6 +151,9 @@ export function getPreviewToolbarHtml(): string {
   <div class="preview-toolbar-left">
     <button id="btn-toolbar-reload" class="toolbar-btn" type="button" title="Reload preview bypassing diagram cache">
       <span>↻</span> Reload
+    </button>
+    <button id="btn-toolbar-sync" class="toolbar-btn toolbar-btn-active" type="button" title="Toggle scroll synchronization with editor">
+      <span>⇄</span> Sync: ON
     </button>
     <label for="select-toolbar-zoom" style="margin-left: 8px; font-size: 11px; opacity: 0.85;">Zoom:</label>
     <select id="select-toolbar-zoom" class="toolbar-select">

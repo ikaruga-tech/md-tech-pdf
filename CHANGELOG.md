@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-09-25
+
+### Fixed
+
+- Resolved broken scroll synchronization by removing extraneous `overflow-y: auto` from the canvas wrapper and unifying scrolling on the window/body container.
+- Implemented full bi-directional scroll synchronization: preview scrolling now accurately reveals matching source lines in the active Markdown editor.
+- Compensated Front Matter line offset so `data-line` attributes match editor document line numbers precisely.
+- Added interactive toolbar Sync toggle button (`Sync: ON / OFF`) allowing users to easily toggle scroll synchronization.
+- Hardened bi-directional scroll event muting (400ms debounce) to eliminate ping-pong loops between editor and preview.
+
 ## [0.4.0] - 2026-09-25
 
 ### Added

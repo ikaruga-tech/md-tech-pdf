@@ -38,6 +38,7 @@ export interface IPreviewPanelInstance {
   reveal(viewColumn?: vscode.ViewColumn): void;
   refresh(options?: PreviewRenderOptions): Promise<void>;
   scrollToLine?(line: number): void;
+  onDidPreviewScroll?(listener: (line: number) => void): vscode.Disposable;
   onDidDispose(listener: () => void): vscode.Disposable;
   dispose(): void;
 }
@@ -60,6 +61,10 @@ export class PreviewManager implements vscode.Disposable {
   private readonly scrollSyncTimers = new Map<string, NodeJS.Timeout>();
   private readonly disposables: vscode.Disposable[] = [];
   private isDisposed = false;
+  private isMutedFromPreviewSync = false;
+  private mutePreviewSyncTimer: NodeJS.Timeout | undefined;
+  private isMutedFromEditorSync = false;
+  private muteEditorSyncTimer: NodeJS.Timeout | undefined;
 
   constructor(
     panelFactory?: PreviewPanelFactory,
@@ -152,10 +157,15 @@ export class PreviewManager implements vscode.Disposable {
   }
 
   /**
-   * Handles editor visible range changes for real-time scroll synchronization.
+   * Handles editor visible range changes for real-time scroll synchronization (Editor -> Preview).
    */
   public handleVisibleRangesChange(e: vscode.TextEditorVisibleRangesChangeEvent): void {
-    if (this.isDisposed || !e.visibleRanges || e.visibleRanges.length === 0) {
+    if (
+      this.isDisposed ||
+      this.isMutedFromPreviewSync ||
+      !e.visibleRanges ||
+      e.visibleRanges.length === 0
+    ) {
       return;
     }
 
@@ -170,9 +180,48 @@ export class PreviewManager implements vscode.Disposable {
     this.clearScrollSyncTimer(key);
     const timer = setTimeout(() => {
       this.scrollSyncTimers.delete(key);
+
+      this.isMutedFromEditorSync = true;
+      if (this.muteEditorSyncTimer) {
+        clearTimeout(this.muteEditorSyncTimer);
+      }
+      this.muteEditorSyncTimer = setTimeout(() => {
+        this.isMutedFromEditorSync = false;
+      }, 400);
+
       panel.scrollToLine?.(topVisibleLine);
     }, 50);
     this.scrollSyncTimers.set(key, timer);
+  }
+
+  /**
+   * Handles preview scroll events for real-time scroll synchronization (Preview -> Editor).
+   */
+  public handlePreviewScroll(documentUri: vscode.Uri, line: number): void {
+    if (this.isDisposed || this.isMutedFromEditorSync) {
+      return;
+    }
+
+    const docUriStr = documentUri.toString();
+    const editor = vscode.window.visibleTextEditors?.find(
+      (ed) => ed.document.uri.toString() === docUriStr
+    );
+    if (!editor) {
+      return;
+    }
+
+    this.isMutedFromPreviewSync = true;
+    if (this.mutePreviewSyncTimer) {
+      clearTimeout(this.mutePreviewSyncTimer);
+    }
+
+    const targetLine = Math.max(0, line - 1);
+    const range = new vscode.Range(targetLine, 0, targetLine, 0);
+    editor.revealRange(range, vscode.TextEditorRevealType.AtTop);
+
+    this.mutePreviewSyncTimer = setTimeout(() => {
+      this.isMutedFromPreviewSync = false;
+    }, 400);
   }
 
   /**
@@ -225,6 +274,15 @@ export class PreviewManager implements vscode.Disposable {
 
     this.panels.set(key, panel);
 
+    if (panel.onDidPreviewScroll) {
+      const scrollSub = panel.onDidPreviewScroll((line) => {
+        this.handlePreviewScroll(documentUri, line);
+      });
+      panel.onDidDispose(() => {
+        scrollSub.dispose();
+      });
+    }
+
     panel.onDidDispose(() => {
       this.clearDebounceTimer(key);
       this.clearScrollSyncTimer(key);
@@ -274,6 +332,13 @@ export class PreviewManager implements vscode.Disposable {
       clearTimeout(timer);
     }
     this.scrollSyncTimers.clear();
+
+    if (this.mutePreviewSyncTimer) {
+      clearTimeout(this.mutePreviewSyncTimer);
+    }
+    if (this.muteEditorSyncTimer) {
+      clearTimeout(this.muteEditorSyncTimer);
+    }
 
     while (this.disposables.length) {
       const item = this.disposables.pop();

@@ -66,6 +66,13 @@ const mockVscode = {
       hide: () => {},
       dispose: () => {},
     }),
+    visibleTextEditors: [] as any[],
+  },
+  TextEditorRevealType: {
+    Default: 0,
+    InCenter: 1,
+    InCenterIfOutsideViewport: 2,
+    AtTop: 3,
   },
   ViewColumn: {
     Beside: -2,
@@ -79,10 +86,17 @@ const mockVscode = {
     ) {}
   },
   Range: class {
-    constructor(
-      public start: any,
-      public end: any
-    ) {}
+    public start: any;
+    public end: any;
+    constructor(a: any, b: any, c?: any, d?: any) {
+      if (typeof a === 'number') {
+        this.start = { line: a, character: b };
+        this.end = { line: c ?? a, character: d ?? b };
+      } else {
+        this.start = a;
+        this.end = b;
+      }
+    }
   },
   EventEmitter: class {
     public event = () => ({ dispose: () => {} });

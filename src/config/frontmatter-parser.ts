@@ -334,6 +334,7 @@ export interface ParsedFrontMatter {
   content: string;
   options: DocumentOptions;
   rawFrontMatter?: string;
+  lineOffset?: number;
 }
 
 /**
@@ -341,7 +342,7 @@ export interface ParsedFrontMatter {
  * Strips the Front Matter block from the returned content.
  *
  * @param source Raw Markdown document text
- * @returns Parsed content and validated DocumentOptions
+ * @returns Parsed content, validated DocumentOptions, and line offset
  * @throws {FrontMatterError} On YAML syntax errors or invalid configuration values
  */
 export function parseFrontMatter(source: string): ParsedFrontMatter {
@@ -351,17 +352,20 @@ export function parseFrontMatter(source: string): ParsedFrontMatter {
     return {
       content: source,
       options: {},
+      lineOffset: 0,
     };
   }
 
   const rawYaml = match[1] ?? '';
   const content = source.slice(match[0].length);
+  const lineOffset = (match[0].match(/\r?\n/g) || []).length;
 
   if (rawYaml.trim() === '') {
     return {
       content,
       options: {},
       rawFrontMatter: rawYaml,
+      lineOffset,
     };
   }
 
@@ -380,6 +384,7 @@ export function parseFrontMatter(source: string): ParsedFrontMatter {
       content,
       options: {},
       rawFrontMatter: rawYaml,
+      lineOffset,
     };
   }
 
@@ -412,5 +417,6 @@ export function parseFrontMatter(source: string): ParsedFrontMatter {
     content,
     options,
     rawFrontMatter: rawYaml,
+    lineOffset,
   };
 }

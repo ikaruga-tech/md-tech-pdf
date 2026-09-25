@@ -5,6 +5,16 @@ All notable changes to the "md-tech-pdf" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-09-25
+
+### Fixed
+
+- Fixed preview scroll synchronization failure caused by container overflow conflict (`overflow-y: auto` on canvas container).
+- Implemented full bi-directional scroll synchronization: scrolling the preview pane now smoothly reveals the corresponding source line in the active Markdown editor.
+- Fixed line number mismatch by adding Front Matter line offset compensation to `data-line` attributes.
+- Added interactive toolbar Sync toggle button (`Sync: ON / OFF`) for user control over scroll synchronization.
+- Hardened bi-directional scroll event muting (400ms debounce) to eliminate ping-pong loops between editor and preview.
+
 ## [0.4.0] - 2026-09-25
 
 ### Added

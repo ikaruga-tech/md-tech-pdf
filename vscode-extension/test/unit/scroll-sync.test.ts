@@ -7,12 +7,28 @@ class MockScrollSyncPanel implements IPreviewPanelInstance {
   public scrolledLines: number[] = [];
   public isDisposed = false;
   private disposeListeners: Array<() => void> = [];
+  private previewScrollListeners: Array<(line: number) => void> = [];
 
   public reveal(_viewColumn?: vscode.ViewColumn): void {}
   public async refresh(): Promise<void> {}
 
   public scrollToLine(line: number): void {
     this.scrolledLines.push(line);
+  }
+
+  public onDidPreviewScroll(listener: (line: number) => void): vscode.Disposable {
+    this.previewScrollListeners.push(listener);
+    return {
+      dispose: () => {
+        this.previewScrollListeners = this.previewScrollListeners.filter((l) => l !== listener);
+      },
+    };
+  }
+
+  public triggerPreviewScroll(line: number): void {
+    for (const listener of this.previewScrollListeners) {
+      listener(line);
+    }
   }
 
   public onDidDispose(listener: () => void): vscode.Disposable {
@@ -122,5 +138,35 @@ describe('Editor to Preview Scroll Synchronization', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 80));
     assert.strictEqual(createdPanels[0].scrolledLines.length, 0);
+  });
+
+  it('should reveal corresponding line in editor when preview is scrolled (Preview -> Editor)', async () => {
+    const docPath = '/workspace/docs/guide.md';
+    const docUri = vscode.Uri.file(docPath);
+    const panel = (await manager.openPreview(docUri)) as MockScrollSyncPanel;
+
+    let revealedRange: vscode.Range | undefined;
+    let revealType: number | undefined;
+
+    const mockEditor = {
+      document: {
+        uri: docUri,
+        fileName: docPath,
+      },
+      revealRange: (range: vscode.Range, type: number) => {
+        revealedRange = range;
+        revealType = type;
+      },
+    };
+
+    (vscode.window as any).visibleTextEditors = [mockEditor];
+
+    panel.triggerPreviewScroll(15);
+
+    assert.ok(revealedRange);
+    assert.strictEqual(revealedRange.start.line, 14); // 0-indexed line 14 for line 15
+    assert.strictEqual(revealType, (vscode as any).TextEditorRevealType.AtTop);
+
+    (vscode.window as any).visibleTextEditors = [];
   });
 });

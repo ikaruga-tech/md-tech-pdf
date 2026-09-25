@@ -1,13 +1,15 @@
 /**
  * Client-side script running inside the md-tech-pdf Webview.
  * Handles scroll position preservation across document re-renders,
- * toolbar interactions, and message communication with the VS Code extension host.
+ * bi-directional scroll synchronization with VS Code editor,
+ * toolbar interactions, and message communication with the extension host.
  */
 
 interface WebviewState {
   scrollY: number;
   scrollRatio: number;
   zoomLevel?: number;
+  syncEnabled?: boolean;
 }
 
 interface VsCodeApi {
@@ -27,13 +29,22 @@ declare function acquireVsCodeApi(): VsCodeApi;
     return;
   }
 
-  // 1. Restore scroll position immediately upon script execution
+  let isSyncing = false;
+  let syncResetTimer: ReturnType<typeof setTimeout> | undefined;
+  let scrollSyncEnabled = true;
+
+  // Restore previous state if available
   const initialState = vscode.getState();
-  if (initialState && typeof initialState.scrollY === 'number') {
-    window.scrollTo({ top: initialState.scrollY, behavior: 'instant' });
+  if (initialState) {
+    if (typeof initialState.syncEnabled === 'boolean') {
+      scrollSyncEnabled = initialState.syncEnabled;
+    }
+    if (typeof initialState.scrollY === 'number') {
+      window.scrollTo({ top: initialState.scrollY, behavior: 'instant' });
+    }
   }
 
-  // 2. Secondary restore after DOM ready and images/fonts load (CLS mitigation)
+  // Secondary restore after DOM ready and images/fonts load (CLS mitigation)
   const restoreScrollPosition = () => {
     const currentState = vscode?.getState();
     if (currentState && typeof currentState.scrollY === 'number') {
@@ -48,17 +59,61 @@ declare function acquireVsCodeApi(): VsCodeApi;
   }
   window.addEventListener('load', restoreScrollPosition);
 
-  // 3. Track scroll changes with 100ms debounce
-  let scrollDebounceTimer: ReturnType<typeof setTimeout> | undefined;
-  let isSyncing = false;
-  let syncResetTimer: ReturnType<typeof setTimeout> | undefined;
-
-  window.addEventListener('scroll', () => {
-    // Suppress reporting scroll when programmatic scroll sync is in progress
-    if (isSyncing) {
-      return;
+  // Helper to find the top-most visible element with data-line in the preview viewport
+  function getTopVisibleLine(): number | undefined {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-line]'));
+    if (elements.length === 0) {
+      return undefined;
     }
 
+    const toolbar = document.querySelector<HTMLElement>('.preview-toolbar');
+    const toolbarHeight = toolbar ? toolbar.offsetHeight : 44;
+    const thresholdY = toolbarHeight + 20;
+
+    let closestLine: number | undefined;
+    let closestTop = -Infinity;
+
+    for (const el of elements) {
+      const rect = el.getBoundingClientRect();
+      const lineAttr = el.getAttribute('data-line');
+      if (!lineAttr) {
+        continue;
+      }
+      const line = parseInt(lineAttr, 10);
+      if (isNaN(line)) {
+        continue;
+      }
+
+      if (rect.top <= thresholdY) {
+        if (rect.top > closestTop) {
+          closestTop = rect.top;
+          closestLine = line;
+        }
+      }
+    }
+
+    if (closestLine === undefined && elements.length > 0) {
+      for (const el of elements) {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom > thresholdY) {
+          const lineAttr = el.getAttribute('data-line');
+          if (lineAttr) {
+            const line = parseInt(lineAttr, 10);
+            if (!isNaN(line)) {
+              return line;
+            }
+          }
+        }
+      }
+    }
+
+    return closestLine;
+  }
+
+  // Track scroll changes with 80ms debounce
+  let scrollDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  window.addEventListener('scroll', () => {
     if (scrollDebounceTimer) {
       clearTimeout(scrollDebounceTimer);
     }
@@ -75,6 +130,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
         ...existingState,
         scrollY,
         scrollRatio,
+        syncEnabled: scrollSyncEnabled,
       };
 
       vscode?.setState(nextState);
@@ -83,10 +139,21 @@ declare function acquireVsCodeApi(): VsCodeApi;
         scrollY,
         scrollRatio,
       });
-    }, 100);
+
+      // Synchronize preview scroll position back to editor if not programmatically syncing
+      if (scrollSyncEnabled && !isSyncing) {
+        const visibleLine = getTopVisibleLine();
+        if (typeof visibleLine === 'number') {
+          vscode?.postMessage({
+            type: 'previewScroll',
+            line: visibleLine,
+          });
+        }
+      }
+    }, 80);
   });
 
-  // 4. Handle incoming messages from extension host
+  // Handle incoming messages from extension host
   window.addEventListener('message', (event) => {
     const message = event.data;
     if (!message || typeof message !== 'object') {
@@ -101,7 +168,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
         break;
       }
       case 'scrollToLine': {
-        if (typeof message.line === 'number') {
+        if (typeof message.line === 'number' && scrollSyncEnabled) {
           scrollToAnchorLine(message.line);
         }
         break;
@@ -143,7 +210,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
       }
       syncResetTimer = setTimeout(() => {
         isSyncing = false;
-      }, 300);
+      }, 400);
 
       const toolbar = document.querySelector<HTMLElement>('.preview-toolbar');
       const toolbarHeight = toolbar ? toolbar.offsetHeight : 44;
@@ -158,7 +225,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
     }
   }
 
-  // 5. Toolbar action bindings
+  // Toolbar action bindings
   function setupToolbarInteractions() {
     const reloadBtn = document.getElementById('btn-toolbar-reload');
     if (reloadBtn) {
@@ -174,12 +241,38 @@ declare function acquireVsCodeApi(): VsCodeApi;
       });
     }
 
+    const syncBtn = document.getElementById('btn-toolbar-sync');
+    if (syncBtn) {
+      updateSyncButtonUi(syncBtn);
+      syncBtn.addEventListener('click', () => {
+        scrollSyncEnabled = !scrollSyncEnabled;
+        updateSyncButtonUi(syncBtn);
+        const currentState = vscode?.getState() || { scrollY: 0, scrollRatio: 0 };
+        vscode?.setState({
+          ...currentState,
+          syncEnabled: scrollSyncEnabled,
+        });
+      });
+    }
+
     const zoomSelect = document.getElementById('select-toolbar-zoom') as HTMLSelectElement | null;
     if (zoomSelect) {
       zoomSelect.addEventListener('change', () => {
         const zoomValue = zoomSelect.value;
         applyZoom(zoomValue);
       });
+    }
+  }
+
+  function updateSyncButtonUi(btn: HTMLElement) {
+    if (scrollSyncEnabled) {
+      btn.classList.add('toolbar-btn-active');
+      btn.innerHTML = '<span>⇄</span> Sync: ON';
+      btn.title = 'Scroll synchronization is active. Click to disable.';
+    } else {
+      btn.classList.remove('toolbar-btn-active');
+      btn.innerHTML = '<span>⇥</span> Sync: OFF';
+      btn.title = 'Scroll synchronization is disabled. Click to enable.';
     }
   }
 

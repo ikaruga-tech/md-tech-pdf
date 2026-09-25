@@ -85,6 +85,7 @@ export class PreviewPanel implements vscode.Disposable {
   private readonly documentUri: vscode.Uri;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly onDisposeEmitter = new vscode.EventEmitter<void>();
+  private readonly onPreviewScrollEmitter = new vscode.EventEmitter<number>();
   private readonly outputChannel: vscode.OutputChannel;
   private readonly extensionUri?: vscode.Uri;
   private diagramCache?: IDiagramRenderCache;
@@ -94,6 +95,7 @@ export class PreviewPanel implements vscode.Disposable {
   private lastScrollRatio = 0;
 
   public readonly onDidDispose = this.onDisposeEmitter.event;
+  public readonly onDidPreviewScroll = this.onPreviewScrollEmitter.event;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -128,6 +130,10 @@ export class PreviewPanel implements vscode.Disposable {
           }
           if (typeof msg.scrollRatio === 'number') {
             this.lastScrollRatio = msg.scrollRatio;
+          }
+        } else if (msg.type === 'previewScroll') {
+          if (typeof msg.line === 'number') {
+            this.onPreviewScrollEmitter.fire(msg.line);
           }
         } else if (msg.type === 'reload') {
           void this.render({ bypassCache: true });
@@ -443,6 +449,7 @@ export class PreviewPanel implements vscode.Disposable {
   public dispose(): void {
     this.onDisposeEmitter.fire();
     this.onDisposeEmitter.dispose();
+    this.onPreviewScrollEmitter.dispose();
 
     while (this.disposables.length) {
       const item = this.disposables.pop();
