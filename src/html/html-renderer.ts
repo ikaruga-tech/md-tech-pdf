@@ -6,10 +6,7 @@ import { parseRawAttributes } from '../parser/attributes-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
-import {
-  type IDiagramRenderCache,
-  computeDiagramCacheKey,
-} from '../renderer/diagram-cache.js';
+import { type IDiagramRenderCache, computeDiagramCacheKey } from '../renderer/diagram-cache.js';
 import type { DiagramBlock, DiagramType } from '../types/diagram.js';
 import {
   buildCompleteHtml,
