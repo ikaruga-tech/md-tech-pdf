@@ -12,7 +12,7 @@ In addition to the standalone CLI and core library for automated documentation p
 
 ## Features
 
-- **VS Code Extension & Live Print Preview**: Real-time side-by-side print preview matching target paper dimensions with high-speed in-memory diagram caching.
+- **VS Code Extension & Live Print Preview**: Real-time side-by-side print preview matching target paper dimensions with synchronized scrolling (Scroll Sync), sticky toolbar, scroll position preservation, and high-speed in-memory diagram caching.
 - **Markdown to High-Quality Vector PDF**: Precise rendering engine built on headless Playwright Chromium.
 - **Mermaid & PlantUML Support**: Inline vector SVG rendering for flowcharts, sequence diagrams, architecture maps, and class diagrams.
 - **Independent Diagram Sizing**: Precise control over diagram `width` and `height` using real-world physical units (`mm`, `cm`, `in`) or digital units (`px`, `pt`, `%`).
@@ -28,7 +28,7 @@ In addition to the standalone CLI and core library for automated documentation p
 
 ## Requirements
 
-- **Node.js**: `>= 20.0.0`
+- **Node.js**: `>= 22.13.0`
 - **Playwright / Chromium**: Required for PDF rendering (installed automatically with project dependencies).
 - **Java Runtime & PlantUML JAR**: Required **only** if you render PlantUML diagrams. If you only use Mermaid diagrams, Java is **not** required.
 - **Internet Connection**: Required **only** if downloading Google Fonts at compilation time (automatically falls back to system fonts when offline).

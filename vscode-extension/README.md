@@ -13,6 +13,9 @@ A standalone command-line interface (CLI) is also available in the repository fo
 ## Features
 
 - **Live Print-Preview**: Real-time side-by-side preview matching actual PDF paper dimensions, custom margins, and typography.
+- **Synchronized Scrolling (Scroll Sync)**: Accurate two-way scrolling synchronization between the Markdown editor and preview panel, with bidirectional toggle controls.
+- **Scroll Position Preservation**: Typing and editing maintains your current scroll location in the preview pane without abrupt resets.
+- **Sticky Preview Toolbar**: Keep actions like Export PDF, Refresh, and Sync toggle immediately accessible at the top while scrolling.
 - **Fast In-Memory Diagram Cache**: Sub-10ms warm re-rendering for documents with complex Mermaid and PlantUML diagrams.
 - **Direct PDF Export**: Convert Markdown files to PDF with a single command.
 - **Save As Dialog**: Choose a customized output directory and filename interactively.
@@ -21,6 +24,7 @@ A standalone command-line interface (CLI) is also available in the repository fo
 - **PlantUML Diagram Support**: Render PlantUML diagrams with local Java and PlantUML JAR integration.
 - **Front Matter Configuration**: Control document-level layout, margins, orientations, and custom fonts directly within Markdown.
 - **Custom Typography**: Embedded Google Fonts and local font support with refined headings, bold weights, and technical table layouts.
+- **Strict Security & CSP**: Isolation through nonce-based Content Security Policy for all preview webview resources.
 
 ## Usage
 
