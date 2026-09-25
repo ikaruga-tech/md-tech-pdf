@@ -72,6 +72,12 @@ const mockVscode = {
     One: 1,
     Two: 2,
   },
+  Position: class {
+    constructor(public line: number, public character: number) {}
+  },
+  Range: class {
+    constructor(public start: any, public end: any) {}
+  },
   EventEmitter: class {
     public event = () => ({ dispose: () => {} });
     public fire = () => {};

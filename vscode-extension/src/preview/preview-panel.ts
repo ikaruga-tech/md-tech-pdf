@@ -201,6 +201,16 @@ export class PreviewPanel implements vscode.Disposable {
   }
 
   /**
+   * Scrolls the preview webview to the specified source line.
+   */
+  public scrollToLine(line: number): void {
+    void this.panel.webview.postMessage({
+      type: 'scrollToLine',
+      line,
+    });
+  }
+
+  /**
    * Displays a lightweight loading state while rendering is in progress.
    */
   private showLoading(): void {

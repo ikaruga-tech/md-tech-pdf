@@ -380,5 +380,49 @@ invalid broken syntax ???
       expect(html).toContain('<img src="./images/sample.png" alt="Default">');
     });
   });
+
+  describe('source line mapping (data-line)', () => {
+    it('should inject data-line attributes into block elements when target is preview', async () => {
+      const markdown = [
+        '# Heading 1', // line 1
+        '',
+        'A paragraph here.', // line 3
+        '',
+        '```ts', // line 5
+        'const x = 1;',
+        '```',
+        '',
+        '```mermaid', // line 9
+        'graph TD;',
+        '  A-->B;',
+        '```',
+      ].join('\n');
+
+      const html = await renderer.render(markdown, { target: 'preview' });
+
+      expect(html).toContain('<h1 data-line="1">Heading 1</h1>');
+      expect(html).toContain('<p data-line="3">A paragraph here.</p>');
+      expect(html).toMatch(/<code[^>]*data-line="5"/);
+      expect(html).toMatch(/<div\s+data-line="9"\s+class="md-tech-diagram/);
+    });
+
+    it('should NOT inject data-line attributes when target is pdf or undefined', async () => {
+      const markdown = [
+        '# Heading 1',
+        '',
+        'A paragraph here.',
+      ].join('\n');
+
+      const defaultHtml = await renderer.render(markdown);
+      expect(defaultHtml).not.toContain('data-line=');
+      expect(defaultHtml).toContain('<h1>Heading 1</h1>');
+      expect(defaultHtml).toContain('<p>A paragraph here.</p>');
+
+      const pdfHtml = await renderer.render(markdown, { target: 'pdf' });
+      expect(pdfHtml).not.toContain('data-line=');
+      expect(pdfHtml).toContain('<h1>Heading 1</h1>');
+      expect(pdfHtml).toContain('<p>A paragraph here.</p>');
+    });
+  });
 });
 

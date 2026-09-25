@@ -50,8 +50,15 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
   // 3. Track scroll changes with 100ms debounce
   let scrollDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let isSyncing = false;
+  let syncResetTimer: ReturnType<typeof setTimeout> | undefined;
 
   window.addEventListener('scroll', () => {
+    // Suppress reporting scroll when programmatic scroll sync is in progress
+    if (isSyncing) {
+      return;
+    }
+
     if (scrollDebounceTimer) {
       clearTimeout(scrollDebounceTimer);
     }
@@ -102,32 +109,52 @@ declare function acquireVsCodeApi(): VsCodeApi;
     }
   });
 
-  // Helper to scroll to heading/element anchor
+  // Helper to scroll to heading/element anchor with toolbar offset compensation
   function scrollToAnchorLine(targetLine: number) {
     const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-line]'));
     if (elements.length === 0) {
       return;
     }
 
-    let closestElement: HTMLElement | undefined;
-    let minDiff = Infinity;
+    let targetElement: HTMLElement | undefined;
+    let maxPreviousLine = -1;
 
     for (const el of elements) {
       const lineAttr = el.getAttribute('data-line');
       if (lineAttr) {
         const line = parseInt(lineAttr, 10);
         if (!isNaN(line)) {
-          const diff = Math.abs(line - targetLine);
-          if (diff < minDiff) {
-            minDiff = diff;
-            closestElement = el;
+          if (line <= targetLine && line > maxPreviousLine) {
+            maxPreviousLine = line;
+            targetElement = el;
           }
         }
       }
     }
 
-    if (closestElement) {
-      closestElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!targetElement && elements.length > 0) {
+      targetElement = elements[0];
+    }
+
+    if (targetElement) {
+      isSyncing = true;
+      if (syncResetTimer) {
+        clearTimeout(syncResetTimer);
+      }
+      syncResetTimer = setTimeout(() => {
+        isSyncing = false;
+      }, 300);
+
+      const toolbar = document.querySelector<HTMLElement>('.preview-toolbar');
+      const toolbarHeight = toolbar ? toolbar.offsetHeight : 44;
+      const rect = targetElement.getBoundingClientRect();
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const targetScrollY = Math.max(0, currentScrollY + rect.top - (toolbarHeight + 12));
+
+      window.scrollTo({
+        top: targetScrollY,
+        behavior: 'smooth',
+      });
     }
   }
 
