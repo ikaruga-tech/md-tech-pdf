@@ -724,3 +724,85 @@ Markdown 内の画像やリンク等で使用されるスキームは、以下�
    - ドキュメント更新時に Webview 内の HTML を再構築するため、プレビューのスクロール位置がトップに巻き戻る場合があります。エディタ側カーソル行との双方向スクロール同期（Scroll Sync）は、将来バージョンでの改善課題とします。
 3. **外部スタイルのカスタマイズ性**:
    - 現在のプレビューは組み込みの用紙寸法・デフォルトスタイルをベースとしており、ユーザー独自のカスタム CSS ファイルを動的に注入する機能は将来の拡張対象となります。
+
+## 21. Phase 20 設計仕様・プレビュー UX 改善とスクロール同期
+
+Phase 20 では、v0.3.0 で既知の制限事項とされていたスクロール位置のリセットを解消し、長文技術文書の執筆効率を飛躍的に向上させるためのアーキテクチャ刷新を行います。
+
+### 21.1 セキュリティモデルの進化（Nonce ベースの厳格 CSP）
+
+スクロール位置の追跡・復元やエディタ間通信を行うため、Webview 内で最小限のクライアントスクリプト（`preview-client.js`）を実行する方式へ移行します。
+v0.3.0 の堅牢な安全境界を損なうことなく安全にスクリプトを導入するため、VS Code 公式推奨の **Nonce ベースの動的 CSP** を採用します。
+
+1. **WebviewPanel オプションの移行**:
+   - `enableScripts: true` を設定します。
+   - ただし、スクリプト実行権限は拡張機能自身の内部スクリプトに限定し、Markdown コンテンツ由来の任意のスクリプト実行は CSP 層で完全に遮断します。
+2. **Nonce（暗号論的乱数）の生成とディレクティブ**:
+   - レンダリングごとに 128 ビットの暗号論的乱数（`crypto.randomBytes(16).toString('base64')`）を生成します。
+   - 改訂 CSP ディレクティブ:
+     ```text
+     default-src 'none';
+     img-src ${cspSource} data: https:;
+     style-src ${cspSource} 'unsafe-inline' https://fonts.googleapis.com;
+     font-src ${cspSource} data: https://fonts.gstatic.com;
+     script-src 'nonce-${nonce}';
+     ```
+3. **クライアントスクリプトのロード**:
+   - 内部スクリプトは `dist/preview/preview-client.js` としてビルドし、`<script nonce="${nonce}" src="${clientScriptUri}"></script>` 経由で読み込みます。
+   - ユーザーの Markdown ドキュメント内に悪意ある `<script>` タグやインラインイベント属性（`onload`, `onerror` 等）が含まれていた場合でも、ブラウザのセキュリティエンジンによって実行が遮断されます。
+
+### 21.2 スクロール位置保持メカニズム（Scroll Position Preservation）
+
+自動更新（onSave / onType）による HTML 全置換時、およびエディタタブ切り替え時にスクロール位置を維持する仕様を規定します。
+
+1. **スクロールイベントのトラッキング**:
+   - Webview 側で `window.addEventListener('scroll', ...)` をリッスンし、100ms の debounce 処理により最新の垂直スクロール座標（`scrollY`）および進行比率（`scrollRatio`）を計算します。
+   - VS Code Webview State API を使用して `vscode.setState({ scrollY, scrollRatio })` に保存し、タブの非表示・再表示時にも復元可能とします。
+   - 同時に、ホスト拡張機能側へ `vscode.postMessage({ type: 'didScroll', scrollY, scrollRatio })` を送信し、ホスト側の `PreviewPanel` インスタンスでも最新座標を追跡します。
+2. **再描画時のスクロール復元フロー**:
+   - 新しい HTML が設定された直後、Webview の DOMContentLoaded イベントで直前の `scrollY` へ `window.scrollTo({ top: scrollY, behavior: 'instant' })` を実行します。
+   - さらに、画像やダイアグラム（SVG）等の非同期アセット読み込みによるレイアウトシフト（Cumulative Layout Shift: CLS）を補正するため、`window.addEventListener('load', ...)` のタイミングでも微調整スクロールを実行します。
+
+### 21.3 エディタ / プレビュー スクロール同期（Scroll Sync）
+
+Markdown エディタのスクロール位置・カーソル位置とプレビューの表示領域をリアルタイムに連動させるアーキテクチャを策定します。
+
+1. **同期方式の比較と採否**:
+   - **方式 A: 単純比率同期（Percentage-based）**:
+     - エディタの行比率（行番号 / 総行数）と Webview の高さ比率を連動。
+     - 評価: 実装は容易だが、長大なダイアグラムや数式、表が含まれる技術文書ではエディタ行数とレンダリング高さが大きく乖離し、視認位置が大幅にずれるため不採用。
+   - **方式 B: 行マッピング・アンカー同期（Heading & Block Anchor-based）［採用］**:
+     - Markdown 解析時に、見出し（`h1`〜`h6`）、コードブロック、ダイアグラムコンテナ、段落等の主要ブロック要素にソース行番号属性（`data-line="${lineNumber}"`）を付与。
+     - エディタ側の表示範囲変更イベント（`vscode.window.onDidChangeTextEditorVisibleRanges`）を監視し、エディタの最上部可視行を取得。
+     - ホストから Webview へ `{ type: 'scrollToLine', line: topVisibleLine }` を送信。
+     - Webview 側は該当行番号（または直近の過去行）を持つ `[data-line]` 要素をバイナリサーチまたはトラバースで探索し、`element.scrollIntoView({ behavior: 'smooth', block: 'start' })` を実行。
+2. **スクロールループ（Ping-Pong 現象）の防止**:
+   - エディタ発の同期スクロール指令を実行している間、Webview 側は `isSyncing = true` フラグをセットし、プレビュー側スクロールイベントによるホストへの通知を 300ms 間ミュートします。
+
+### 21.4 プレビューツールバー / アクション UI
+
+プレビューパネルの上部に、控えめで洗練されたスティッキーツールバー（Toolbar）を配置し、作業効率を向上させます。
+
+1. **提供機能と UI 構成**:
+   - **更新ボタン（Reload）**: ダイアグラムキャッシュをバイパスして即座に強制再レンダリングを実行。
+   - **表示倍率（Zoom）**: 50%, 75%, 100%, 125%, 幅に合わせる（Fit Width）をドロップダウンまたはボタングループで切り替え。
+   - **PDF エクスポート（Export PDF）**: ツールバーのボタンをクリックすると、Webview からホストへ `{ type: 'exportPdf' }` を送信し、エクスポートコマンド（`md-tech-pdf.exportPdf`）をワンクリックで実行。
+2. **印刷・PDF エクスポートとの干渉防止**:
+   - ツールバーコンテナには専用クラス（`.preview-toolbar`）を付与し、印刷用メディアクエリにおいて `display: none !important;` を指定します。
+   - これにより、プレビュー画面上のみに表示され、実際の PDF 生成出力には一切混入しません。
+
+### 21.5 Phase 20.1 実装タスクと対象ファイル一覧
+
+次フェーズ（Phase 20.1: 実装工程）におけるタスク分割と修正対象ファイル群は以下の通りです。
+
+1. **Core レイヤー (`src/`)**:
+   - `src/renderer/html-renderer.ts`: プレビューターゲット時にブロック要素への `data-line` 属性付与オプションを実装。
+2. **Extension レイヤー (`vscode-extension/`)**:
+   - `src/preview/csp-builder.ts`: `buildPreviewCsp(cspSource, nonce)` への Nonce 引数追加。
+   - `src/preview/client/preview-client.ts`（新規）: Webview 内で動作するスクロール管理・通信クライアントロジック。
+   - `src/preview/preview-panel.ts`: `enableScripts: true` への変更、Nonce 生成、postMessage 受信ハンドラ実装。
+   - `src/preview/preview-manager.ts`: エディタ可視範囲変更イベントの監視とスクロール同期メッセージの送信。
+   - `src/preview/preview-style.ts`: スティッキーツールバー用のスタイルおよび印刷除外スタイルの定義。
+3. **テスト**:
+   - Nonce 付与 CSP の生成テスト（Unit）
+   - スクロールメッセージ受信および同期コマンドのハンドリングテスト（Unit）
