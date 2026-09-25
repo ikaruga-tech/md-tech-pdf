@@ -64,6 +64,7 @@ describe('PlantUmlRenderer', () => {
 
   it('9. should throw DiagramRenderError when Java executable fails to start', async () => {
     const renderer = createRenderer({
+      jarPath: import.meta.filename,
       javaPath: '/non/existent/path/to/java_binary',
     });
     const source = '@startuml\nAlice -> Bob: test\n@enduml';

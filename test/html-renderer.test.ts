@@ -1,5 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { HtmlRenderer } from '../src/index.js';
+
+const hasPlantUml = Boolean(
+  [
+    process.env.PLANTUML_JAR_PATH,
+    path.join(process.env.HOME ?? '', '.cursor/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
+    path.join(process.env.HOME ?? '', '.vscode/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
+    '/usr/local/opt/plantuml/libexec/plantuml.jar',
+  ].some((p) => p && fs.existsSync(p))
+);
 
 describe('HtmlRenderer', () => {
   const renderer = new HtmlRenderer();
@@ -217,8 +228,10 @@ flowchart TD
     expect(html).toContain('処理の完了');
   });
 
-  it('Integration: should render PlantUML blocks into styled SVG containers alongside Mermaid', async () => {
-    const markdown = `
+  it.skipIf(!hasPlantUml)(
+    'Integration: should render PlantUML blocks into styled SVG containers alongside Mermaid',
+    async () => {
+      const markdown = `
 # 統合テスト
 
 \`\`\`plantuml {width=130mm height=60mm align=center}
@@ -228,17 +241,18 @@ Server --> Client: API Response
 @enduml
 \`\`\`
 `;
-    const html = await renderer.render(markdown);
+      const html = await renderer.render(markdown);
 
-    expect(html).toContain('<h1>統合テスト</h1>');
-    expect(html).toContain(
-      'class="md-tech-diagram md-tech-diagram-align-center md-tech-diagram-fit-contain"'
-    );
-    expect(html).toContain('style="width: 130mm; height: 60mm;"');
-    expect(html).toContain('<svg');
-    expect(html).toContain('Client');
-    expect(html).toContain('Server');
-  });
+      expect(html).toContain('<h1>統合テスト</h1>');
+      expect(html).toContain(
+        'class="md-tech-diagram md-tech-diagram-align-center md-tech-diagram-fit-contain"'
+      );
+      expect(html).toContain('style="width: 130mm; height: 60mm;"');
+      expect(html).toContain('<svg');
+      expect(html).toContain('Client');
+      expect(html).toContain('Server');
+    }
+  );
 
   // 16. 印刷・PDF向けのスタイル（見出し孤立防止、preの折り返し、テーブルの自動レイアウト）が含まれる
   it('16. should include layout rules for heading orphan prevention, pre wrapping, and table cell layout', async () => {
@@ -285,9 +299,9 @@ Conclusion paragraph.
       });
 
       // Entire document must still be intact
-      expect(html).toContain('<h1>Document Title</h1>');
-      expect(html).toContain('<p>Intro paragraph.</p>');
-      expect(html).toContain('<p>Conclusion paragraph.</p>');
+      expect(html).toMatch(/<h1[^>]*>Document Title<\/h1>/);
+      expect(html).toMatch(/<p[^>]*>Intro paragraph\.<\/p>/);
+      expect(html).toMatch(/<p[^>]*>Conclusion paragraph\.<\/p>/);
 
       // Error container must be rendered
       expect(html).toContain('md-tech-diagram-error');
@@ -317,7 +331,7 @@ invalid broken syntax ???
         target: 'preview',
       });
 
-      expect(html).toContain('<h1>Mixed Diagrams</h1>');
+      expect(html).toMatch(/<h1[^>]*>Mixed Diagrams<\/h1>/);
       // First diagram should have succeeded with SVG
       expect(html).toContain('<svg');
       expect(html).toContain('Node A');

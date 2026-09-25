@@ -1,9 +1,19 @@
 import { execFile } from 'node:child_process';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { convertMarkdownToPdf, resolveOutputPath } from '../src/core/converter.js';
+
+const hasPlantUml = Boolean(
+  [
+    process.env.PLANTUML_JAR_PATH,
+    path.join(process.env.HOME ?? '', '.cursor/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
+    path.join(process.env.HOME ?? '', '.vscode/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
+    '/usr/local/opt/plantuml/libexec/plantuml.jar',
+  ].some((p) => p && fsSync.existsSync(p))
+);
 
 const execFileAsync = promisify(execFile);
 const TSX_BIN = path.resolve(process.cwd(), 'node_modules/.bin/tsx');
@@ -114,7 +124,7 @@ graph TD
     expect(progressSteps).toContain('pdf');
   });
 
-  it('7. should convert Markdown with PlantUML diagrams', async () => {
+  it.skipIf(!hasPlantUml)('7. should convert Markdown with PlantUML diagrams', async () => {
     const mdPath = path.join(WORK_DIR, 'plantuml-doc.md');
     const pdfPath = path.join(WORK_DIR, 'plantuml-doc.pdf');
     const content = `# PlantUML Test
