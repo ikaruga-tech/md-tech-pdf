@@ -300,10 +300,23 @@ export class PreviewPanel implements vscode.Disposable {
         ? undefined
         : (options.diagramCache ?? this.diagramCache);
 
+      const docDir = path.dirname(this.documentUri.fsPath);
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(this.documentUri);
+      const resolvedSettingsStyles = extSettings.styles.map((s) => {
+        if (path.isAbsolute(s)) {
+          return s;
+        }
+        if (workspaceFolder) {
+          return path.resolve(workspaceFolder.uri.fsPath, s);
+        }
+        return path.resolve(docDir, s);
+      });
+
       let diagramErrorCount = 0;
       const renderer = new HtmlRenderer();
       const html = await renderer.render(markdownContent, {
         title: baseName,
+        basePath: docDir,
         customCss,
         extraHeadHtml: cspTag,
         target: 'preview',
@@ -311,6 +324,9 @@ export class PreviewPanel implements vscode.Disposable {
         diagramCache: effectiveCache,
         defaultOptions: {
           plantuml: extSettings.plantuml,
+          style: {
+            css: resolvedSettingsStyles.length > 0 ? resolvedSettingsStyles : undefined,
+          },
         },
         onDiagramError: (event) => {
           diagramErrorCount++;

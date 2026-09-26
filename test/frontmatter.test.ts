@@ -470,4 +470,81 @@ Content here.`;
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  describe('style.css and style.customCss parsing', () => {
+    it('should parse single style.css string', () => {
+      const md = `---
+style:
+  css: "styles/custom.css"
+---
+# Test`;
+      const parsed = parseFrontMatter(md);
+      expect(parsed.options.style?.css).toBe('styles/custom.css');
+    });
+
+    it('should parse style.css array of strings', () => {
+      const md = `---
+style:
+  css:
+    - "styles/base.css"
+    - "styles/theme.css"
+---
+# Test`;
+      const parsed = parseFrontMatter(md);
+      expect(parsed.options.style?.css).toEqual(['styles/base.css', 'styles/theme.css']);
+    });
+
+    it('should parse style.customCss string', () => {
+      const md = `---
+style:
+  customCss: |
+    .custom-box { border: 1px solid #ccc; }
+---
+# Test`;
+      const parsed = parseFrontMatter(md);
+      expect(parsed.options.style?.customCss).toContain('.custom-box { border: 1px solid #ccc; }');
+    });
+
+    it('should throw FrontMatterError for empty style.css string', () => {
+      const md = `---
+style:
+  css: "   "
+---
+# Test`;
+      expect(() => parseFrontMatter(md)).toThrow(FrontMatterError);
+      expect(() => parseFrontMatter(md)).toThrow(/style\.css/);
+    });
+
+    it('should throw FrontMatterError for invalid style.css item in array', () => {
+      const md = `---
+style:
+  css:
+    - "styles/base.css"
+    - 123
+---
+# Test`;
+      expect(() => parseFrontMatter(md)).toThrow(FrontMatterError);
+      expect(() => parseFrontMatter(md)).toThrow(/style\.css\[1\]/);
+    });
+
+    it('should throw FrontMatterError for non-string style.css type', () => {
+      const md = `---
+style:
+  css: 12345
+---
+# Test`;
+      expect(() => parseFrontMatter(md)).toThrow(FrontMatterError);
+      expect(() => parseFrontMatter(md)).toThrow(/style\.css/);
+    });
+
+    it('should throw FrontMatterError for non-string style.customCss type', () => {
+      const md = `---
+style:
+  customCss: { color: "red" }
+---
+# Test`;
+      expect(() => parseFrontMatter(md)).toThrow(FrontMatterError);
+      expect(() => parseFrontMatter(md)).toThrow(/style\.customCss/);
+    });
+  });
 });

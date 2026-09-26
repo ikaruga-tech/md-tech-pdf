@@ -46,6 +46,8 @@ export interface FontOptions {
 
 export interface StyleDocumentOptions {
   font?: FontOptions;
+  css?: string | string[];
+  customCss?: string;
 }
 
 export interface DocumentOptions {

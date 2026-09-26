@@ -2,7 +2,7 @@
   "name": "md-tech-pdf",
   "displayName": "md-tech-pdf",
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "ikaruga-tech",
   "icon": "media/icon.png",
   "license": "Apache-2.0",
@@ -55,6 +55,10 @@
       {
         "command": "md-tech-pdf.exportPdfAs",
         "title": "md-tech-pdf: Export to PDF As..."
+      },
+      {
+        "command": "md-tech-pdf.clearDiagramCache",
+        "title": "md-tech-pdf: Clear Diagram Cache"
       }
     ],
     "menus": {
@@ -115,6 +119,26 @@
           ],
           "default": "onSave",
           "description": "Controls when an open md-tech-pdf preview is refreshed."
+        },
+        "md-tech-pdf.preview.debounceDelay": {
+          "type": "integer",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Debounce delay in milliseconds before refreshing the preview when preview.refresh is set to onType (minimum: 100ms, default: 500ms)."
+        },
+        "md-tech-pdf.preview.cache.persistent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable persistent disk caching for rendered Mermaid and PlantUML diagrams across VS Code sessions."
+        },
+        "md-tech-pdf.styles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of custom CSS file paths (relative to workspace or document) to apply to preview and PDF export."
         }
       }
     }

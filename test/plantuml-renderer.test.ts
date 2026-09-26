@@ -1,9 +1,19 @@
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { extractDiagramBlocks } from '../src/parser/markdown-parser.js';
 import { DiagramRenderError } from '../src/renderer/error.js';
 import { PlantUmlRenderer } from '../src/renderer/plantuml-renderer.js';
+
+const isJavaExecutable = (bin: string): boolean => {
+  try {
+    const res = spawnSync(bin, ['-version'], { stdio: 'ignore' });
+    return res.status === 0;
+  } catch {
+    return false;
+  }
+};
 
 // Detect local Java and PlantUML jar for environment-aware testing
 function getTestConfiguration(): {
@@ -24,13 +34,13 @@ function getTestConfiguration(): {
     process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'bin/java') : '',
     '/usr/local/opt/openjdk/bin/java',
     '/usr/bin/java',
-  ].filter((p): p is string => Boolean(p && fs.existsSync(p)));
+  ].filter((p): p is string => Boolean(p && fs.existsSync(p) && isJavaExecutable(p)));
 
   const jarPath = jarCandidates[0];
-  const javaPath = javaCandidates[0] ?? 'java';
+  const javaPath = javaCandidates[0];
 
   return {
-    isAvailable: Boolean(jarPath),
+    isAvailable: Boolean(jarPath && javaPath),
     jarPath,
     javaPath,
   };

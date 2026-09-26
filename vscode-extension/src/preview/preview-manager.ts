@@ -3,6 +3,10 @@ import { getExtensionSettings } from '../config/extension-settings.js';
 import type { ExtensionSettings } from '../config/settings.js';
 import type { IDiagramRenderCache, PreviewRenderOptions } from './preview-panel.js';
 
+import { PersistentDiagramCache } from './persistent-diagram-cache.js';
+
+export { PersistentDiagramCache };
+
 /**
  * In-memory diagram cache implementation for the VS Code extension session.
  */
@@ -56,7 +60,7 @@ export type PreviewPanelFactory = (
 export class PreviewManager implements vscode.Disposable {
   private readonly panels = new Map<string, IPreviewPanelInstance>();
   private readonly panelFactory: PreviewPanelFactory;
-  private readonly diagramCache = new ExtensionDiagramCache();
+  private readonly diagramCache: IDiagramRenderCache;
   private readonly debounceTimers = new Map<string, NodeJS.Timeout>();
   private readonly scrollSyncTimers = new Map<string, NodeJS.Timeout>();
   private readonly disposables: vscode.Disposable[] = [];
@@ -68,8 +72,10 @@ export class PreviewManager implements vscode.Disposable {
 
   constructor(
     panelFactory?: PreviewPanelFactory,
-    private readonly extensionUri?: vscode.Uri
+    private readonly extensionUri?: vscode.Uri,
+    diagramCache?: IDiagramRenderCache
   ) {
+    this.diagramCache = diagramCache ?? new PersistentDiagramCache();
     this.panelFactory =
       panelFactory ??
       ((documentUri, viewColumn, settingsOrOptions) => {
@@ -151,7 +157,7 @@ export class PreviewManager implements vscode.Disposable {
           settings,
           diagramCache: this.diagramCache,
         });
-      }, 500);
+      }, settings.preview.debounceDelay);
       this.debounceTimers.set(key, timer);
     }
   }
@@ -309,8 +315,18 @@ export class PreviewManager implements vscode.Disposable {
   /**
    * Access to the underlying DiagramRenderCache instance (for testing/diagnostics).
    */
-  public get cache(): ExtensionDiagramCache {
+  public get cache(): IDiagramRenderCache {
     return this.diagramCache;
+  }
+
+  /**
+   * Clears in-memory diagram cache and deletes persisted SVG cache files from disk.
+   */
+  public async clearCache(): Promise<void> {
+    if (this.diagramCache instanceof PersistentDiagramCache) {
+      await this.diagramCache.clearDisk();
+    }
+    this.diagramCache.clear?.();
   }
 
   /**
@@ -352,6 +368,6 @@ export class PreviewManager implements vscode.Disposable {
     }
 
     this.panels.clear();
-    this.diagramCache.clear();
+    this.diagramCache.clear?.();
   }
 }

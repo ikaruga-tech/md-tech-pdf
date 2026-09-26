@@ -152,6 +152,18 @@ export async function executePdfExport(
   try {
     const { convertMarkdownToPdf } = await import('md-tech-pdf');
 
+    const docDir = path.dirname(inputPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(inputPath));
+    const resolvedStyles = extSettings.styles.map((s) => {
+      if (path.isAbsolute(s)) {
+        return s;
+      }
+      if (workspaceFolder) {
+        return path.resolve(workspaceFolder.uri.fsPath, s);
+      }
+      return path.resolve(docDir, s);
+    });
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -166,6 +178,9 @@ export async function executePdfExport(
           },
           config: {
             plantuml: extSettings.plantuml,
+            style: {
+              css: resolvedStyles.length > 0 ? resolvedStyles : undefined,
+            },
           },
         });
       }

@@ -10,6 +10,62 @@ describe('extension-settings', () => {
       assert.strictEqual(settings.plantuml.jarPath, undefined);
       assert.strictEqual(settings.export.outputDirectory, undefined);
       assert.strictEqual(settings.export.afterExport, 'none');
+      assert.strictEqual(settings.preview.debounceDelay, 500);
+      assert.strictEqual(settings.preview.cache.persistent, true);
+    });
+
+    it('should parse preview.debounceDelay setting with bounds and fallback', () => {
+      const customSetting = parseExtensionSettings({
+        preview: { debounceDelay: 300 },
+      });
+      assert.strictEqual(customSetting.preview.debounceDelay, 300);
+
+      const largeSetting = parseExtensionSettings({
+        preview: { debounceDelay: 1200 },
+      });
+      assert.strictEqual(largeSetting.preview.debounceDelay, 1200);
+
+      const floatSetting = parseExtensionSettings({
+        preview: { debounceDelay: 250.9 },
+      });
+      assert.strictEqual(floatSetting.preview.debounceDelay, 250);
+
+      const belowMinSetting = parseExtensionSettings({
+        preview: { debounceDelay: 50 },
+      });
+      assert.strictEqual(belowMinSetting.preview.debounceDelay, 500);
+
+      const negativeSetting = parseExtensionSettings({
+        preview: { debounceDelay: -100 },
+      });
+      assert.strictEqual(negativeSetting.preview.debounceDelay, 500);
+
+      const nanSetting = parseExtensionSettings({
+        preview: { debounceDelay: NaN },
+      });
+      assert.strictEqual(nanSetting.preview.debounceDelay, 500);
+
+      const invalidTypeSetting = parseExtensionSettings({
+        preview: { debounceDelay: 'fast' as unknown as number },
+      });
+      assert.strictEqual(invalidTypeSetting.preview.debounceDelay, 500);
+    });
+
+    it('should parse preview.cache.persistent setting', () => {
+      const falseSetting = parseExtensionSettings({
+        preview: { cache: { persistent: false } },
+      });
+      assert.strictEqual(falseSetting.preview.cache.persistent, false);
+
+      const trueSetting = parseExtensionSettings({
+        preview: { cache: { persistent: true } },
+      });
+      assert.strictEqual(trueSetting.preview.cache.persistent, true);
+
+      const nonBoolSetting = parseExtensionSettings({
+        preview: { cache: { persistent: 'invalid' as unknown as boolean } },
+      });
+      assert.strictEqual(nonBoolSetting.preview.cache.persistent, true);
     });
 
     it('should trim string values properly', () => {
@@ -60,6 +116,26 @@ describe('extension-settings', () => {
 
       const invalidSetting = parseExtensionSettings({ export: { afterExport: 'invalid_action' } });
       assert.strictEqual(invalidSetting.export.afterExport, 'none');
+    });
+
+    it('should parse and normalize styles array', () => {
+      const defaultSetting = parseExtensionSettings();
+      assert.deepStrictEqual(defaultSetting.styles, []);
+
+      const validSetting = parseExtensionSettings({
+        styles: ['  styles/theme.css  ', 'custom.css', '   ', ''],
+      });
+      assert.deepStrictEqual(validSetting.styles, ['styles/theme.css', 'custom.css']);
+
+      const invalidTypeSetting = parseExtensionSettings({
+        styles: 'not-an-array' as unknown as string[],
+      });
+      assert.deepStrictEqual(invalidTypeSetting.styles, []);
+
+      const mixedTypeSetting = parseExtensionSettings({
+        styles: ['valid.css', 123, null, undefined] as unknown as string[],
+      });
+      assert.deepStrictEqual(mixedTypeSetting.styles, ['valid.css']);
     });
   });
 

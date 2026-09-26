@@ -325,6 +325,48 @@ function validateStyleOptions(rawStyle: unknown): StyleDocumentOptions {
     result.font = fontResult;
   }
 
+  if (record.css !== undefined) {
+    if (typeof record.css === 'string') {
+      const trimmed = record.css.trim();
+      if (trimmed === '') {
+        throw new FrontMatterError(
+          `Invalid Front Matter setting: style.css = ${JSON.stringify(record.css)}. Expected non-empty string or array of strings.`,
+          { path: 'style.css' }
+        );
+      }
+      result.css = trimmed;
+    } else if (Array.isArray(record.css)) {
+      const cssList: string[] = [];
+      for (let i = 0; i < record.css.length; i++) {
+        const item = record.css[i];
+        const itemPath = `style.css[${i}]`;
+        if (typeof item !== 'string' || item.trim() === '') {
+          throw new FrontMatterError(
+            `Invalid Front Matter setting: ${itemPath} = ${JSON.stringify(item)}. Expected non-empty string.`,
+            { path: itemPath }
+          );
+        }
+        cssList.push(item.trim());
+      }
+      result.css = cssList;
+    } else {
+      throw new FrontMatterError(
+        `Invalid Front Matter setting: style.css = ${JSON.stringify(record.css)}. Expected string or array of strings.`,
+        { path: 'style.css' }
+      );
+    }
+  }
+
+  if (record.customCss !== undefined) {
+    if (typeof record.customCss !== 'string') {
+      throw new FrontMatterError(
+        `Invalid Front Matter setting: style.customCss = ${JSON.stringify(record.customCss)}. Expected string.`,
+        { path: 'style.customCss' }
+      );
+    }
+    result.customCss = record.customCss;
+  }
+
   return result;
 }
 

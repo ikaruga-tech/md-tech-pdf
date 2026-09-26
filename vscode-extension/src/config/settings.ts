@@ -14,7 +14,12 @@ export interface ExtensionSettings {
   };
   preview: {
     refresh: PreviewRefreshMode;
+    debounceDelay: number;
+    cache: {
+      persistent: boolean;
+    };
   };
+  styles: string[];
 }
 
 export interface RawExtensionSettings {
@@ -28,7 +33,12 @@ export interface RawExtensionSettings {
   };
   preview?: {
     refresh?: string;
+    debounceDelay?: number;
+    cache?: {
+      persistent?: boolean;
+    };
   };
+  styles?: unknown;
 }
 
 /**
@@ -53,6 +63,25 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
   const refresh: PreviewRefreshMode =
     rawRefresh === 'manual' || rawRefresh === 'onType' ? rawRefresh : 'onSave';
 
+  const rawDebounceDelay = raw?.preview?.debounceDelay;
+  const debounceDelay =
+    typeof rawDebounceDelay === 'number' &&
+    Number.isFinite(rawDebounceDelay) &&
+    rawDebounceDelay >= 100
+      ? Math.floor(rawDebounceDelay)
+      : 500;
+
+  const rawPersistent = raw?.preview?.cache?.persistent;
+  const persistent = typeof rawPersistent === 'boolean' ? rawPersistent : true;
+
+  let styles: string[] = [];
+  if (Array.isArray(raw?.styles)) {
+    styles = raw.styles
+      .filter((s): s is string => typeof s === 'string')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+
   return {
     plantuml: {
       javaPath,
@@ -64,7 +93,12 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
     },
     preview: {
       refresh,
+      debounceDelay,
+      cache: {
+        persistent,
+      },
     },
+    styles,
   };
 }
 

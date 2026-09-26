@@ -5,6 +5,30 @@ All notable changes to the "md-tech-pdf" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-26
+
+### Added
+
+- Custom CSS styling support:
+  - Added `styles` option in Front Matter (string or string array) to inject user-defined CSS stylesheets into preview and PDF export.
+  - Added `md-tech-pdf.styles` setting in VS Code configuration for workspace-wide or global custom stylesheets.
+  - Hardened local stylesheet path resolution strictly within workspace/document boundary with Webview CSP integration.
+- Persistent Diagram Cache across VS Code sessions:
+  - Introduced two-tier diagram caching (L1 in-memory Map + L2 disk cache in extension global storage) preserving rendered Mermaid and PlantUML SVG output.
+  - Added `md-tech-pdf.preview.cache.persistent` setting (default: `true`) to toggle persistent disk caching.
+  - Added `md-tech-pdf.clearDiagramCache` command (`md-tech-pdf: Clear Diagram Cache`) to safely purge cached diagrams with user feedback notification.
+- Configurable Auto Refresh debounce delay:
+  - Added `md-tech-pdf.preview.debounceDelay` setting (default: `500` ms, minimum: `100` ms, maximum: `5000` ms) for fine-grained tuning of typing refresh latency.
+
+### Improved
+
+- Near-instant preview rendering for previously opened documents across VS Code restarts via persistent diagram caching.
+
+### Known Limitations
+
+- Preview approximates PDF layout but is not exact print-level pagination.
+- Local resources referenced from CSS `url(...)` are not rewritten.
+
 ## [0.4.1] - 2026-09-25
 
 ### Fixed

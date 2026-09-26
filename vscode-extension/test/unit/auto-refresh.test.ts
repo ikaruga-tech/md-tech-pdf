@@ -198,6 +198,29 @@ describe('Auto Refresh & PreviewManager Lifecycle', () => {
       assert.strictEqual(panelA.refreshCount, 1);
       assert.strictEqual(panelB.refreshCount, 1);
     });
+
+    it('should respect custom preview.debounceDelay when specified', async () => {
+      setMockConfiguration({
+        'plantuml.javaPath': 'java',
+        'export.afterExport': 'none',
+        'preview.refresh': 'onType',
+        'preview.debounceDelay': 200,
+      });
+
+      const docUri = vscode.Uri.file('/workspace/doc-custom-debounce.md');
+      await manager.openPreview(docUri);
+      const panel = createdPanels.get(docUri.toString())!;
+
+      manager.handleDocumentChange(createChangeEventMock('/workspace/doc-custom-debounce.md'));
+
+      // Before 200ms elapsed
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      assert.strictEqual(panel.refreshCount, 0);
+
+      // After 200ms elapsed (total ~260ms)
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      assert.strictEqual(panel.refreshCount, 1);
+    });
   });
 
   describe('dispose & cleanup', () => {

@@ -1,7 +1,17 @@
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { HtmlRenderer } from '../src/index.js';
+
+const isJavaExecutable = (bin: string): boolean => {
+  try {
+    const res = spawnSync(bin, ['-version'], { stdio: 'ignore' });
+    return res.status === 0;
+  } catch {
+    return false;
+  }
+};
 
 const hasPlantUml = Boolean(
   [
@@ -9,7 +19,8 @@ const hasPlantUml = Boolean(
     path.join(process.env.HOME ?? '', '.cursor/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
     path.join(process.env.HOME ?? '', '.vscode/extensions/jebbs.plantuml-2.18.1/plantuml.jar'),
     '/usr/local/opt/plantuml/libexec/plantuml.jar',
-  ].some((p) => p && fs.existsSync(p))
+  ].some((p) => p && fs.existsSync(p)) &&
+  (isJavaExecutable(process.env.PLANTUML_JAVA_PATH ?? 'java') || isJavaExecutable('/usr/bin/java'))
 );
 
 describe('HtmlRenderer', () => {
@@ -445,6 +456,120 @@ invalid broken syntax ???
       expect(pdfHtml).not.toContain('data-line=');
       expect(pdfHtml).toContain('<h1>Heading 1</h1>');
       expect(pdfHtml).toContain('<p>A paragraph here.</p>');
+    });
+  });
+
+  describe('Custom CSS injection and cascade ordering', () => {
+    it('should inject Front Matter style.customCss into <style>', async () => {
+      const markdown = `---
+style:
+  customCss: |
+    .custom-box { background-color: #f0f0f0; }
+---
+# Custom CSS Test`;
+      const html = await renderer.render(markdown);
+      expect(html).toContain('.custom-box { background-color: #f0f0f0; }');
+    });
+
+    it('should read external CSS file specified in style.css using basePath', async () => {
+      const tmpDir = await fs.promises.mkdtemp(path.join(process.cwd(), 'scratch-css-test-'));
+      try {
+        const cssPath = path.join(tmpDir, 'theme.css');
+        await fs.promises.writeFile(cssPath, '.external-theme { color: blue; }', 'utf-8');
+
+        const markdown = `---
+style:
+  css: "theme.css"
+---
+# External CSS Test`;
+
+        const html = await renderer.render(markdown, { basePath: tmpDir });
+        expect(html).toContain('.external-theme { color: blue; }');
+      } finally {
+        await fs.promises.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should read multiple external CSS files specified as array in style.css', async () => {
+      const tmpDir = await fs.promises.mkdtemp(path.join(process.cwd(), 'scratch-css-test-'));
+      try {
+        await fs.promises.writeFile(path.join(tmpDir, 'base.css'), '.base { margin: 0; }', 'utf-8');
+        await fs.promises.writeFile(
+          path.join(tmpDir, 'colors.css'),
+          '.colors { color: green; }',
+          'utf-8'
+        );
+
+        const markdown = `---
+style:
+  css:
+    - "base.css"
+    - "colors.css"
+---
+# Multiple External CSS Test`;
+
+        const html = await renderer.render(markdown, { basePath: tmpDir });
+        expect(html).toContain('.base { margin: 0; }');
+        expect(html).toContain('.colors { color: green; }');
+        expect(html.indexOf('.base { margin: 0; }')).toBeLessThan(
+          html.indexOf('.colors { color: green; }')
+        );
+      } finally {
+        await fs.promises.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should throw Error when specified CSS file does not exist', async () => {
+      const markdown = `---
+style:
+  css: "non-existent-file.css"
+---
+# Error Test`;
+
+      await expect(renderer.render(markdown, { basePath: '/non/existent/dir' })).rejects.toThrow(
+        /Failed to load custom CSS file "non-existent-file\.css"/
+      );
+    });
+
+    it('should respect cascade order: default -> font -> style.css -> style.customCss -> options.customCss', async () => {
+      const tmpDir = await fs.promises.mkdtemp(path.join(process.cwd(), 'scratch-css-test-'));
+      try {
+        await fs.promises.writeFile(
+          path.join(tmpDir, 'external.css'),
+          '/* 1. EXTERNAL CSS */',
+          'utf-8'
+        );
+
+        const markdown = `---
+style:
+  font:
+    family: "LINE Seed JP"
+  css: "external.css"
+  customCss: "/* 2. INLINE CUSTOM CSS */"
+---
+# Cascade Order Test`;
+
+        const html = await renderer.render(markdown, {
+          basePath: tmpDir,
+          customCss: '/* 3. OPTION CUSTOM CSS */',
+        });
+
+        const fontPos = html.indexOf('font-family:');
+        const externalPos = html.indexOf('/* 1. EXTERNAL CSS */');
+        const inlinePos = html.indexOf('/* 2. INLINE CUSTOM CSS */');
+        const optionPos = html.indexOf('/* 3. OPTION CUSTOM CSS */');
+
+        expect(fontPos).toBeGreaterThan(-1);
+        expect(externalPos).toBeGreaterThan(-1);
+        expect(inlinePos).toBeGreaterThan(-1);
+        expect(optionPos).toBeGreaterThan(-1);
+
+        expect(fontPos).toBeLessThan(externalPos);
+        expect(externalPos).toBeLessThan(inlinePos);
+        expect(inlinePos).toBeLessThan(optionPos);
+      } finally {
+        await fs.promises.rm(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 });

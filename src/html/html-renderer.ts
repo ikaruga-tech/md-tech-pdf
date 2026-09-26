@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import MarkdownIt from 'markdown-it';
 import { resolveDiagramOptions } from '../config/config-resolver.js';
 import type { DocumentOptions } from '../config/document-options.js';
@@ -46,6 +48,7 @@ export interface DiagramCacheEvent {
 export interface HtmlRenderOptions {
   title?: string;
   customCss?: string;
+  basePath?: string;
   documentOptions?: DocumentOptions;
   defaultOptions?: DocumentOptions;
   target?: RenderTarget;
@@ -348,12 +351,49 @@ export class HtmlRenderer {
       }
     }
 
+    // Resolve and read external CSS files specified in docOptions.style.css
+    const basePath = options?.basePath ?? process.cwd();
+    const externalCssParts: string[] = [];
+    if (docOptions.style?.css) {
+      const cssPaths = Array.isArray(docOptions.style.css)
+        ? docOptions.style.css
+        : [docOptions.style.css];
+      for (const rawPath of cssPaths) {
+        const resolvedPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(basePath, rawPath);
+        try {
+          const cssContent = await fs.readFile(resolvedPath, 'utf-8');
+          externalCssParts.push(cssContent);
+        } catch (err: unknown) {
+          throw new Error(
+            `Failed to load custom CSS file "${rawPath}" (resolved: "${resolvedPath}"): ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+    }
+
+    // Combine custom CSS according to cascade order:
+    // (1) external CSS files (style.css)
+    // (2) Front Matter inline custom CSS (style.customCss)
+    // (3) render options custom CSS (options.customCss)
+    const customCssParts: string[] = [];
+    if (externalCssParts.length > 0) {
+      customCssParts.push(...externalCssParts);
+    }
+    if (docOptions.style?.customCss) {
+      customCssParts.push(docOptions.style.customCss);
+    }
+    if (options?.customCss) {
+      customCssParts.push(options.customCss);
+    }
+    const combinedCustomCss = customCssParts.length > 0 ? customCssParts.join('\n') : undefined;
+
     // Render Markdown AST with transformed diagram tokens to HTML body
     const bodyHtml = this.md.renderer.render(tokens, this.md.options, {});
 
     // Wrap in full HTML document
     return buildCompleteHtml(bodyHtml, {
       ...options,
+      customCss: combinedCustomCss,
       fontOptions: docOptions.style?.font,
     });
   }

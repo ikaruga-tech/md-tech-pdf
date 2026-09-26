@@ -18,6 +18,10 @@ export interface ConvertAppConfig {
     javaPath?: string;
     jarPath?: string;
   };
+  style?: {
+    css?: string | string[];
+    customCss?: string;
+  };
 }
 
 export interface ConvertOptions {
@@ -130,8 +134,10 @@ export async function convertMarkdownToPdf(
   try {
     html = await htmlRenderer.render(markdownContent, {
       title: baseName,
+      basePath: path.dirname(resolvedInputPath),
       defaultOptions: {
         plantuml: options.config?.plantuml,
+        style: options.config?.style,
       },
     });
   } catch (err: unknown) {

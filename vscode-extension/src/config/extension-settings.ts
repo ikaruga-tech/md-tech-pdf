@@ -28,6 +28,11 @@ export function getExtensionSettings(): ExtensionSettings {
     },
     preview: {
       refresh: config.get<string>('preview.refresh'),
+      debounceDelay: config.get<number>('preview.debounceDelay'),
+      cache: {
+        persistent: config.get<boolean>('preview.cache.persistent'),
+      },
     },
+    styles: config.get<unknown>('styles'),
   });
 }
