@@ -62,7 +62,7 @@ Export with a custom destination path and filename:
 
 ## Front Matter Configuration
 
-You can customize PDF rendering options at the top of your Markdown file using YAML front matter.
+You can customize PDF rendering options and global diagram defaults at the top of your Markdown file using YAML front matter.
 
 Example:
 
@@ -77,16 +77,70 @@ pdf:
     bottom: 20mm
     left: 20mm
     right: 20mm
-fonts:
-  - name: 'LINE Seed JP'
-    type: google
-    weights: [400, 700]
+diagram:
+  width: 140mm
+  height: 80mm
+  fit: contain
+  align: center
+style:
+  font:
+    family: 'Noto Sans JP'
+    codeFamily: 'Roboto Mono'
+    google:
+      families:
+        - name: 'Noto Sans JP'
+          weights: [400, 700]
+        - name: 'Roboto Mono'
+          weights: [400, 700]
+  css:
+    - ./custom-theme.css
 ---
 
 # 1. System Overview
 
 This document demonstrates high-quality PDF export using `md-tech-pdf`.
 ```
+
+## Diagram Sizing and Positioning
+
+`md-tech-pdf` gives you precise control over how Mermaid and PlantUML diagrams are sized and aligned in both print preview and exported PDFs.
+
+### Global Diagram Settings (Front Matter)
+
+Set document-wide defaults for all diagrams under the `diagram` front matter section:
+
+- `width`: Default diagram container width (supported units: `mm`, `cm`, `in`, `px`, `pt`, `%`).
+- `height`: Default diagram container height (supported units: `mm`, `cm`, `in`, `px`, `pt`, `%`).
+- `fit`: Scaling behavior:
+  - `contain` (default): Preserves aspect ratio while fitting within container dimensions.
+  - `fill`: Stretches the diagram SVG to fill the specified width and height.
+- `align`: Horizontal positioning (`center` [default], `left`, or `right`).
+
+### Per-Diagram Block Attributes
+
+Override defaults for individual diagram blocks using curly brace attributes `{...}` following the code fence language:
+
+````markdown
+```mermaid {width=160mm height=90mm align=center fit=contain}
+graph TD
+  Client[Client] --> API[API Gateway]
+  API --> Service[Backend Service]
+  Service --> DB[(Database)]
+```
+````
+
+PlantUML diagrams support the identical syntax:
+
+````markdown
+```plantuml {width=120mm align=left}
+@startuml
+actor User
+participant Server
+User -> Server: Request
+Server --> User: Response
+@enduml
+```
+````
 
 ## Requirements
 
@@ -99,6 +153,9 @@ This document demonstrates high-quality PDF export using `md-tech-pdf`.
 Configure extension settings via VS Code Settings (`Preferences: Open User Settings (JSON)` or GUI):
 
 - `md-tech-pdf.preview.refresh`: Controls when an open preview is refreshed (`"manual"`, `"onSave"`, or `"onType"`, default: `"onSave"`).
+- `md-tech-pdf.preview.debounceDelay`: Debounce delay in milliseconds before refreshing the preview on typing edits when `preview.refresh` is `"onType"` (minimum: `100`, default: `500`).
+- `md-tech-pdf.preview.cache.persistent`: Enable persistent disk caching for rendered Mermaid and PlantUML diagrams across VS Code sessions (default: `true`).
+- `md-tech-pdf.styles`: List of custom CSS file paths (relative to workspace or document) to apply to preview and PDF export (default: `[]`).
 - `md-tech-pdf.plantuml.javaPath`: Path to the Java executable (default: `"java"`).
 - `md-tech-pdf.plantuml.jarPath`: Path to the local `plantuml.jar` file (default: `""`).
 - `md-tech-pdf.export.outputDirectory`: Default output directory for exports. Leave empty to output next to the source Markdown file (default: `""`).
