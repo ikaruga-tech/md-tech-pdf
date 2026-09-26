@@ -264,16 +264,15 @@ declare function acquireVsCodeApi(): VsCodeApi;
     currentZoom = zoomValue;
     const pages = Array.from(document.querySelectorAll<HTMLElement>('.md-tech-pdf-preview-page'));
     const canvas = document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas');
+    const contentWrapper = document.querySelector<HTMLElement>('.preview-content-wrapper');
 
     // Ensure outer container maintains full width
-    const contentWrapper = document.querySelector<HTMLElement>('.preview-content-wrapper');
     if (contentWrapper) {
       contentWrapper.style.transform = 'none';
       contentWrapper.style.width = '100%';
     }
     if (canvas) {
       canvas.style.transform = 'none';
-      canvas.style.width = '100%';
     }
 
     if (pages.length === 0) {
@@ -283,10 +282,24 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
     let scale = 1;
     if (zoomValue === 'fit') {
-      if (canvas && pages[0]) {
-        const availableWidth = Math.max(200, canvas.clientWidth - 48);
-        const pageWidth = pages[0].offsetWidth || 794; // A4 standard width ~794px
-        scale = Math.min(2.5, Math.max(0.3, availableWidth / pageWidth));
+      if (pages[0]) {
+        // Determine natural unzoomed page width
+        let naturalPageWidth = parseFloat(pages[0].dataset.naturalWidth || '');
+        if (!naturalPageWidth || isNaN(naturalPageWidth)) {
+          pages[0].style.zoom = '1';
+          pages[0].style.transform = 'none';
+          naturalPageWidth = pages[0].offsetWidth || 794;
+          pages[0].dataset.naturalWidth = String(naturalPageWidth);
+        }
+
+        const containerWidth = contentWrapper
+          ? contentWrapper.clientWidth
+          : canvas
+            ? canvas.clientWidth
+            : window.innerWidth;
+        // Leave 32px for canvas padding (16px left + 16px right) + 4px safety margin = 36px
+        const availableWidth = Math.max(100, containerWidth - 36);
+        scale = Math.min(2.5, Math.max(0.2, availableWidth / naturalPageWidth));
       }
     } else {
       switch (zoomValue) {
@@ -310,12 +323,8 @@ declare function acquireVsCodeApi(): VsCodeApi;
     }
 
     for (const page of pages) {
-      if (scale === 1) {
-        page.style.transform = 'none';
-      } else {
-        page.style.transform = `scale(${scale})`;
-        page.style.transformOrigin = 'top center';
-      }
+      page.style.transform = 'none';
+      page.style.zoom = String(scale);
     }
 
     saveCurrentState();
@@ -323,16 +332,26 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
   // Re-apply zoom on window resize when fit mode is active
   let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-  window.addEventListener('resize', () => {
+  function handleResize() {
     if (currentZoom === 'fit') {
       if (resizeTimer) {
         clearTimeout(resizeTimer);
       }
       resizeTimer = setTimeout(() => {
         applyZoom('fit');
-      }, 100);
+      }, 50);
     }
-  });
+  }
+
+  window.addEventListener('resize', handleResize);
+
+  const contentWrapperEl = document.querySelector<HTMLElement>('.preview-content-wrapper');
+  if (typeof ResizeObserver !== 'undefined' && contentWrapperEl) {
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(contentWrapperEl);
+  }
 
   function updateSyncButtonUi(btn: HTMLElement) {
     if (scrollSyncEnabled) {

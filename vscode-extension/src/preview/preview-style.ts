@@ -132,8 +132,8 @@ body {
   justify-content: safe center;
   align-items: flex-start;
   background-color: var(--vscode-editor-background, #1e1e1e);
-  overflow-x: auto;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
 }
 
 .md-tech-pdf-preview-page {
@@ -141,10 +141,8 @@ body {
   background-color: #ffffff;
   color: #24292f;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  margin: 0 auto;
+  margin: 0;
   flex-shrink: 0;
-  transform-origin: top center;
-  transition: transform 0.15s ease-out;
 }
 
 @media print {
