@@ -2,6 +2,8 @@ import * as path from 'node:path';
 
 export type AfterExportAction = 'none' | 'open' | 'reveal';
 export type PreviewRefreshMode = 'manual' | 'onSave' | 'onType';
+export type ScrollSyncBehavior = 'smooth' | 'instant';
+export type PreviewZoomLevel = 'fit' | '50%' | '75%' | '100%' | '125%' | '150%';
 
 export interface ExtensionSettings {
   plantuml: {
@@ -18,6 +20,12 @@ export interface ExtensionSettings {
     cache: {
       persistent: boolean;
     };
+    scrollSync: {
+      enabled: boolean;
+      behavior: ScrollSyncBehavior;
+      delay: number;
+    };
+    zoom: PreviewZoomLevel;
   };
   styles: string[];
 }
@@ -37,6 +45,12 @@ export interface RawExtensionSettings {
     cache?: {
       persistent?: boolean;
     };
+    scrollSync?: {
+      enabled?: boolean;
+      behavior?: string;
+      delay?: number;
+    };
+    zoom?: string;
   };
   styles?: unknown;
 }
@@ -74,6 +88,25 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
   const rawPersistent = raw?.preview?.cache?.persistent;
   const persistent = typeof rawPersistent === 'boolean' ? rawPersistent : true;
 
+  const rawSyncEnabled = raw?.preview?.scrollSync?.enabled;
+  const syncEnabled = typeof rawSyncEnabled === 'boolean' ? rawSyncEnabled : true;
+
+  const rawSyncBehavior = raw?.preview?.scrollSync?.behavior;
+  const syncBehavior: ScrollSyncBehavior = rawSyncBehavior === 'instant' ? 'instant' : 'smooth';
+
+  const rawSyncDelay = raw?.preview?.scrollSync?.delay;
+  const syncDelay =
+    typeof rawSyncDelay === 'number' && Number.isFinite(rawSyncDelay) && rawSyncDelay >= 0
+      ? Math.floor(rawSyncDelay)
+      : 50;
+
+  const rawZoom = raw?.preview?.zoom;
+  const validZoomLevels: PreviewZoomLevel[] = ['fit', '50%', '75%', '100%', '125%', '150%'];
+  const zoom: PreviewZoomLevel =
+    typeof rawZoom === 'string' && validZoomLevels.includes(rawZoom as PreviewZoomLevel)
+      ? (rawZoom as PreviewZoomLevel)
+      : 'fit';
+
   let styles: string[] = [];
   if (Array.isArray(raw?.styles)) {
     styles = raw.styles
@@ -97,6 +130,12 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
       cache: {
         persistent,
       },
+      scrollSync: {
+        enabled: syncEnabled,
+        behavior: syncBehavior,
+        delay: syncDelay,
+      },
+      zoom,
     },
     styles,
   };

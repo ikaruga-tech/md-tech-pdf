@@ -132,6 +132,44 @@
           "default": true,
           "description": "Enable persistent disk caching for rendered Mermaid and PlantUML diagrams across VS Code sessions."
         },
+        "md-tech-pdf.preview.scrollSync.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Initial scroll synchronization state between editor and preview."
+        },
+        "md-tech-pdf.preview.scrollSync.behavior": {
+          "type": "string",
+          "enum": [
+            "smooth",
+            "instant"
+          ],
+          "default": "smooth",
+          "description": "Scroll animation behavior when synchronizing scroll position with editor."
+        },
+        "md-tech-pdf.preview.scrollSync.delay": {
+          "type": "integer",
+          "enum": [
+            0,
+            20,
+            50,
+            100
+          ],
+          "default": 50,
+          "description": "Debounce delay in milliseconds for scroll synchronization between editor and preview."
+        },
+        "md-tech-pdf.preview.zoom": {
+          "type": "string",
+          "enum": [
+            "fit",
+            "50%",
+            "75%",
+            "100%",
+            "125%",
+            "150%"
+          ],
+          "default": "fit",
+          "description": "Initial zoom magnification level for the preview display."
+        },
         "md-tech-pdf.styles": {
           "type": "array",
           "items": {

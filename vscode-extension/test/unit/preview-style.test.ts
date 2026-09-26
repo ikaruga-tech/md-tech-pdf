@@ -79,8 +79,32 @@ describe('preview-style', () => {
       assert.match(html, /class="preview-toolbar"/);
       assert.match(html, /role="toolbar"/);
       assert.match(html, /id="btn-toolbar-reload"/);
+      assert.match(html, /id="btn-toolbar-sync"/);
+      assert.match(html, /id="select-toolbar-sync-anim"/);
+      assert.match(html, /id="select-toolbar-sync-delay"/);
       assert.match(html, /id="select-toolbar-zoom"/);
       assert.match(html, /id="btn-toolbar-export"/);
+      assert.match(html, /data-default-sync-enabled="true"/);
+      assert.match(html, /data-default-sync-anim="smooth"/);
+      assert.match(html, /data-default-sync-delay="50"/);
+      assert.match(html, /data-default-zoom="fit"/);
+    });
+
+    it('should reflect custom initial settings in HTML attributes and selection', () => {
+      const html = getPreviewToolbarHtml({
+        syncEnabled: false,
+        syncBehavior: 'instant',
+        syncDelay: 20,
+        zoom: '75%',
+      });
+      assert.match(html, /data-default-sync-enabled="false"/);
+      assert.match(html, /data-default-sync-anim="instant"/);
+      assert.match(html, /data-default-sync-delay="20"/);
+      assert.match(html, /data-default-zoom="75%"/);
+      assert.match(html, /<option value="instant" selected>Instant<\/option>/);
+      assert.match(html, /<option value="20" selected>20ms<\/option>/);
+      assert.match(html, /<option value="75%" selected>75%<\/option>/);
+      assert.match(html, /Sync: OFF/);
     });
   });
 

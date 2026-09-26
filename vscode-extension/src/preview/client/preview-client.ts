@@ -8,8 +8,10 @@
 interface WebviewState {
   scrollY: number;
   scrollRatio: number;
-  zoomLevel?: number;
   syncEnabled?: boolean;
+  syncAnim?: 'smooth' | 'instant';
+  syncDelay?: number;
+  zoomLevel?: string;
 }
 
 interface VsCodeApi {
@@ -31,17 +33,31 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
   let isSyncing = false;
   let syncResetTimer: ReturnType<typeof setTimeout> | undefined;
-  let scrollSyncEnabled = true;
 
-  // Restore previous state if available
+  // Retrieve initial defaults from toolbar attributes or fall back to system defaults
+  const toolbarEl = document.querySelector<HTMLElement>('.preview-toolbar');
+  const defaultSyncEnabled = toolbarEl?.getAttribute('data-default-sync-enabled') !== 'false';
+  const defaultSyncAnim =
+    (toolbarEl?.getAttribute('data-default-sync-anim') as 'smooth' | 'instant') || 'smooth';
+  const defaultSyncDelay = parseInt(toolbarEl?.getAttribute('data-default-sync-delay') || '50', 10);
+  const defaultZoom = toolbarEl?.getAttribute('data-default-zoom') || 'fit';
+
+  // Restore previous state if available, otherwise apply settings defaults
   const initialState = vscode.getState();
-  if (initialState) {
-    if (typeof initialState.syncEnabled === 'boolean') {
-      scrollSyncEnabled = initialState.syncEnabled;
-    }
-    if (typeof initialState.scrollY === 'number') {
-      window.scrollTo({ top: initialState.scrollY, behavior: 'instant' });
-    }
+  let scrollSyncEnabled =
+    typeof initialState?.syncEnabled === 'boolean' ? initialState.syncEnabled : defaultSyncEnabled;
+  let scrollSyncAnim: 'smooth' | 'instant' =
+    initialState?.syncAnim === 'instant' || initialState?.syncAnim === 'smooth'
+      ? initialState.syncAnim
+      : defaultSyncAnim;
+  let scrollSyncDelay: number =
+    typeof initialState?.syncDelay === 'number' && Number.isFinite(initialState.syncDelay)
+      ? initialState.syncDelay
+      : defaultSyncDelay;
+  let currentZoom: string = initialState?.zoomLevel || defaultZoom;
+
+  if (initialState && typeof initialState.scrollY === 'number') {
+    window.scrollTo({ top: initialState.scrollY, behavior: 'instant' });
   }
 
   // Secondary restore after DOM ready and images/fonts load (CLS mitigation)
@@ -58,6 +74,29 @@ declare function acquireVsCodeApi(): VsCodeApi;
     restoreScrollPosition();
   }
   window.addEventListener('load', restoreScrollPosition);
+
+  // Notify extension host of active scroll sync configuration
+  function notifyScrollSyncConfig() {
+    vscode?.postMessage({
+      type: 'updateScrollSyncConfig',
+      delay: scrollSyncDelay,
+      behavior: scrollSyncAnim,
+    });
+  }
+
+  // Save state helper
+  function saveCurrentState(overrides?: Partial<WebviewState>) {
+    const currentState = vscode?.getState() || { scrollY: 0, scrollRatio: 0 };
+    const nextState: WebviewState = {
+      ...currentState,
+      syncEnabled: scrollSyncEnabled,
+      syncAnim: scrollSyncAnim,
+      syncDelay: scrollSyncDelay,
+      zoomLevel: currentZoom,
+      ...overrides,
+    };
+    vscode?.setState(nextState);
+  }
 
   // Helper to find the top-most visible element with data-line in the preview viewport
   function getTopVisibleLine(): number | undefined {
@@ -110,7 +149,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
     return closestLine;
   }
 
-  // Track scroll changes with 80ms debounce
+  // Track scroll changes with configurable debounce delay
   let scrollDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   window.addEventListener('scroll', () => {
@@ -118,6 +157,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
       clearTimeout(scrollDebounceTimer);
     }
 
+    const delay = Math.max(0, scrollSyncDelay);
     scrollDebounceTimer = setTimeout(() => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
       const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 1;
@@ -125,15 +165,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
       const maxScroll = Math.max(1, scrollHeight - clientHeight);
       const scrollRatio = Math.min(1, Math.max(0, scrollY / maxScroll));
 
-      const existingState = vscode?.getState() || { scrollY: 0, scrollRatio: 0 };
-      const nextState: WebviewState = {
-        ...existingState,
-        scrollY,
-        scrollRatio,
-        syncEnabled: scrollSyncEnabled,
-      };
-
-      vscode?.setState(nextState);
+      saveCurrentState({ scrollY, scrollRatio });
       vscode?.postMessage({
         type: 'didScroll',
         scrollY,
@@ -150,7 +182,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
           });
         }
       }
-    }, 80);
+    }, delay);
   });
 
   // Handle incoming messages from extension host
@@ -208,9 +240,11 @@ declare function acquireVsCodeApi(): VsCodeApi;
       if (syncResetTimer) {
         clearTimeout(syncResetTimer);
       }
+      // Mute reflection timer proportionally to sync delay
+      const muteDuration = Math.max(150, scrollSyncDelay * 3);
       syncResetTimer = setTimeout(() => {
         isSyncing = false;
-      }, 400);
+      }, muteDuration);
 
       const toolbar = document.querySelector<HTMLElement>('.preview-toolbar');
       const toolbarHeight = toolbar ? toolbar.offsetHeight : 44;
@@ -220,8 +254,95 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
       window.scrollTo({
         top: targetScrollY,
-        behavior: 'smooth',
+        behavior: scrollSyncAnim,
       });
+    }
+  }
+
+  // Zoom management: scales preview pages inside full-width canvas
+  function applyZoom(zoomValue: string) {
+    currentZoom = zoomValue;
+    const pages = Array.from(document.querySelectorAll<HTMLElement>('.md-tech-pdf-preview-page'));
+    const canvas = document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas');
+
+    // Ensure outer container maintains full width
+    const contentWrapper = document.querySelector<HTMLElement>('.preview-content-wrapper');
+    if (contentWrapper) {
+      contentWrapper.style.transform = 'none';
+      contentWrapper.style.width = '100%';
+    }
+    if (canvas) {
+      canvas.style.transform = 'none';
+      canvas.style.width = '100%';
+    }
+
+    if (pages.length === 0) {
+      saveCurrentState();
+      return;
+    }
+
+    let scale = 1;
+    if (zoomValue === 'fit') {
+      if (canvas && pages[0]) {
+        const availableWidth = Math.max(200, canvas.clientWidth - 48);
+        const pageWidth = pages[0].offsetWidth || 794; // A4 standard width ~794px
+        scale = Math.min(2.5, Math.max(0.3, availableWidth / pageWidth));
+      }
+    } else {
+      switch (zoomValue) {
+        case '50%':
+          scale = 0.5;
+          break;
+        case '75%':
+          scale = 0.75;
+          break;
+        case '125%':
+          scale = 1.25;
+          break;
+        case '150%':
+          scale = 1.5;
+          break;
+        case '100%':
+        default:
+          scale = 1;
+          break;
+      }
+    }
+
+    for (const page of pages) {
+      if (scale === 1) {
+        page.style.transform = 'none';
+      } else {
+        page.style.transform = `scale(${scale})`;
+        page.style.transformOrigin = 'top center';
+      }
+    }
+
+    saveCurrentState();
+  }
+
+  // Re-apply zoom on window resize when fit mode is active
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+  window.addEventListener('resize', () => {
+    if (currentZoom === 'fit') {
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+      resizeTimer = setTimeout(() => {
+        applyZoom('fit');
+      }, 100);
+    }
+  });
+
+  function updateSyncButtonUi(btn: HTMLElement) {
+    if (scrollSyncEnabled) {
+      btn.classList.add('toolbar-btn-active');
+      btn.innerHTML = '<span>⇄</span> Sync: ON';
+      btn.title = 'Scroll synchronization is active. Click to disable.';
+    } else {
+      btn.classList.remove('toolbar-btn-active');
+      btn.innerHTML = '<span>⇥</span> Sync: OFF';
+      btn.title = 'Scroll synchronization is disabled. Click to enable.';
     }
   }
 
@@ -247,60 +368,45 @@ declare function acquireVsCodeApi(): VsCodeApi;
       syncBtn.addEventListener('click', () => {
         scrollSyncEnabled = !scrollSyncEnabled;
         updateSyncButtonUi(syncBtn);
-        const currentState = vscode?.getState() || { scrollY: 0, scrollRatio: 0 };
-        vscode?.setState({
-          ...currentState,
-          syncEnabled: scrollSyncEnabled,
-        });
+        saveCurrentState();
+      });
+    }
+
+    const animSelect = document.getElementById(
+      'select-toolbar-sync-anim'
+    ) as HTMLSelectElement | null;
+    if (animSelect) {
+      animSelect.value = scrollSyncAnim;
+      animSelect.addEventListener('change', () => {
+        scrollSyncAnim = animSelect.value === 'instant' ? 'instant' : 'smooth';
+        saveCurrentState();
+        notifyScrollSyncConfig();
+      });
+    }
+
+    const delaySelect = document.getElementById(
+      'select-toolbar-sync-delay'
+    ) as HTMLSelectElement | null;
+    if (delaySelect) {
+      delaySelect.value = String(scrollSyncDelay);
+      delaySelect.addEventListener('change', () => {
+        scrollSyncDelay = parseInt(delaySelect.value, 10);
+        saveCurrentState();
+        notifyScrollSyncConfig();
       });
     }
 
     const zoomSelect = document.getElementById('select-toolbar-zoom') as HTMLSelectElement | null;
     if (zoomSelect) {
+      zoomSelect.value = currentZoom;
+      applyZoom(currentZoom);
       zoomSelect.addEventListener('change', () => {
-        const zoomValue = zoomSelect.value;
-        applyZoom(zoomValue);
+        applyZoom(zoomSelect.value);
       });
     }
-  }
 
-  function updateSyncButtonUi(btn: HTMLElement) {
-    if (scrollSyncEnabled) {
-      btn.classList.add('toolbar-btn-active');
-      btn.innerHTML = '<span>⇄</span> Sync: ON';
-      btn.title = 'Scroll synchronization is active. Click to disable.';
-    } else {
-      btn.classList.remove('toolbar-btn-active');
-      btn.innerHTML = '<span>⇥</span> Sync: OFF';
-      btn.title = 'Scroll synchronization is disabled. Click to enable.';
-    }
-  }
-
-  function applyZoom(zoomValue: string) {
-    const pagesContainer =
-      document.querySelector<HTMLElement>('.preview-content-wrapper') ||
-      document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas') ||
-      document.querySelector<HTMLElement>('.preview-canvas') ||
-      document.body;
-    switch (zoomValue) {
-      case '50%':
-        pagesContainer.style.transform = 'scale(0.5)';
-        pagesContainer.style.transformOrigin = 'top center';
-        break;
-      case '75%':
-        pagesContainer.style.transform = 'scale(0.75)';
-        pagesContainer.style.transformOrigin = 'top center';
-        break;
-      case '125%':
-        pagesContainer.style.transform = 'scale(1.25)';
-        pagesContainer.style.transformOrigin = 'top center';
-        break;
-      case '100%':
-      default:
-        pagesContainer.style.transform = 'none';
-        pagesContainer.style.transformOrigin = 'top center';
-        break;
-    }
+    // Initial notification of scroll sync config to extension host
+    notifyScrollSyncConfig();
   }
 
   if (document.readyState === 'loading') {

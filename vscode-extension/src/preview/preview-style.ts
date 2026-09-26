@@ -110,6 +110,20 @@ body {
   outline: none;
 }
 
+.toolbar-label {
+  font-size: 11px;
+  color: var(--vscode-foreground, #cccccc);
+  opacity: 0.85;
+  user-select: none;
+  margin-left: 4px;
+}
+
+.preview-content-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
 .md-tech-pdf-preview-canvas {
   box-sizing: border-box;
   min-height: calc(100vh - 36px);
@@ -119,6 +133,7 @@ body {
   align-items: flex-start;
   background-color: var(--vscode-editor-background, #1e1e1e);
   overflow-x: auto;
+  width: 100%;
 }
 
 .md-tech-pdf-preview-page {
@@ -128,6 +143,8 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   margin: 0 auto;
   flex-shrink: 0;
+  transform-origin: top center;
+  transition: transform 0.15s ease-out;
 }
 
 @media print {
@@ -142,25 +159,51 @@ body {
 `;
 }
 
+export interface PreviewToolbarInitialSettings {
+  syncEnabled?: boolean;
+  syncBehavior?: 'smooth' | 'instant';
+  syncDelay?: number;
+  zoom?: 'fit' | '50%' | '75%' | '100%' | '125%' | '150%';
+}
+
 /**
  * Returns HTML markup for the Preview Toolbar.
  */
-export function getPreviewToolbarHtml(): string {
+export function getPreviewToolbarHtml(initialSettings?: PreviewToolbarInitialSettings): string {
+  const syncEnabled = initialSettings?.syncEnabled ?? true;
+  const syncBehavior = initialSettings?.syncBehavior ?? 'smooth';
+  const syncDelay = initialSettings?.syncDelay ?? 50;
+  const zoom = initialSettings?.zoom ?? 'fit';
+
   return `
-<div class="preview-toolbar" role="toolbar" aria-label="Markdown Technical PDF Preview Toolbar">
+<div class="preview-toolbar" role="toolbar" aria-label="Markdown Technical PDF Preview Toolbar" data-default-sync-enabled="${syncEnabled}" data-default-sync-anim="${syncBehavior}" data-default-sync-delay="${syncDelay}" data-default-zoom="${zoom}">
   <div class="preview-toolbar-left">
     <button id="btn-toolbar-reload" class="toolbar-btn" type="button" title="Reload preview bypassing diagram cache">
       <span>↻</span> Reload
     </button>
-    <button id="btn-toolbar-sync" class="toolbar-btn toolbar-btn-active" type="button" title="Toggle scroll synchronization with editor">
-      <span>⇄</span> Sync: ON
+    <button id="btn-toolbar-sync" class="toolbar-btn ${syncEnabled ? 'toolbar-btn-active' : ''}" type="button" title="Toggle scroll synchronization with editor">
+      <span>${syncEnabled ? '⇄' : '⇥'}</span> Sync: ${syncEnabled ? 'ON' : 'OFF'}
     </button>
-    <label for="select-toolbar-zoom" style="margin-left: 8px; font-size: 11px; opacity: 0.85;">Zoom:</label>
-    <select id="select-toolbar-zoom" class="toolbar-select">
-      <option value="50%">50%</option>
-      <option value="75%">75%</option>
-      <option value="100%" selected>100%</option>
-      <option value="125%">125%</option>
+    <label for="select-toolbar-sync-anim" class="toolbar-label">Anim:</label>
+    <select id="select-toolbar-sync-anim" class="toolbar-select" title="Scroll animation behavior">
+      <option value="smooth"${syncBehavior === 'smooth' ? ' selected' : ''}>Smooth</option>
+      <option value="instant"${syncBehavior === 'instant' ? ' selected' : ''}>Instant</option>
+    </select>
+    <label for="select-toolbar-sync-delay" class="toolbar-label">Delay:</label>
+    <select id="select-toolbar-sync-delay" class="toolbar-select" title="Scroll sync debounce delay">
+      <option value="0"${syncDelay === 0 ? ' selected' : ''}>0ms</option>
+      <option value="20"${syncDelay === 20 ? ' selected' : ''}>20ms</option>
+      <option value="50"${syncDelay === 50 ? ' selected' : ''}>50ms</option>
+      <option value="100"${syncDelay === 100 ? ' selected' : ''}>100ms</option>
+    </select>
+    <label for="select-toolbar-zoom" class="toolbar-label">Zoom:</label>
+    <select id="select-toolbar-zoom" class="toolbar-select" title="Preview display zoom level">
+      <option value="fit"${zoom === 'fit' ? ' selected' : ''}>Fit Width</option>
+      <option value="50%"${zoom === '50%' ? ' selected' : ''}>50%</option>
+      <option value="75%"${zoom === '75%' ? ' selected' : ''}>75%</option>
+      <option value="100%"${zoom === '100%' ? ' selected' : ''}>100%</option>
+      <option value="125%"${zoom === '125%' ? ' selected' : ''}>125%</option>
+      <option value="150%"${zoom === '150%' ? ' selected' : ''}>150%</option>
     </select>
   </div>
   <div class="preview-toolbar-right">

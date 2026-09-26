@@ -43,6 +43,9 @@ export interface IPreviewPanelInstance {
   refresh(options?: PreviewRenderOptions): Promise<void>;
   scrollToLine?(line: number): void;
   onDidPreviewScroll?(listener: (line: number) => void): vscode.Disposable;
+  onDidUpdateScrollSyncConfig?(
+    listener: (config: { delay?: number; behavior?: 'smooth' | 'instant' }) => void
+  ): vscode.Disposable;
   onDidDispose(listener: () => void): vscode.Disposable;
   dispose(): void;
 }
@@ -63,6 +66,7 @@ export class PreviewManager implements vscode.Disposable {
   private readonly diagramCache: IDiagramRenderCache;
   private readonly debounceTimers = new Map<string, NodeJS.Timeout>();
   private readonly scrollSyncTimers = new Map<string, NodeJS.Timeout>();
+  private readonly documentSyncDelays = new Map<string, number>();
   private readonly disposables: vscode.Disposable[] = [];
   private isDisposed = false;
   private isMutedFromPreviewSync = false;
@@ -183,6 +187,10 @@ export class PreviewManager implements vscode.Disposable {
 
     const topVisibleLine = e.visibleRanges[0].start.line + 1;
 
+    const docSyncDelay =
+      this.documentSyncDelays.get(key) ?? getExtensionSettings().preview.scrollSync?.delay ?? 50;
+    const muteDuration = Math.max(150, docSyncDelay * 3);
+
     this.clearScrollSyncTimer(key);
     const timer = setTimeout(() => {
       this.scrollSyncTimers.delete(key);
@@ -193,10 +201,10 @@ export class PreviewManager implements vscode.Disposable {
       }
       this.muteEditorSyncTimer = setTimeout(() => {
         this.isMutedFromEditorSync = false;
-      }, 400);
+      }, muteDuration);
 
       panel.scrollToLine?.(topVisibleLine);
-    }, 50);
+    }, docSyncDelay);
     this.scrollSyncTimers.set(key, timer);
   }
 
@@ -289,9 +297,21 @@ export class PreviewManager implements vscode.Disposable {
       });
     }
 
+    if (panel.onDidUpdateScrollSyncConfig) {
+      const configSub = panel.onDidUpdateScrollSyncConfig((config) => {
+        if (typeof config.delay === 'number') {
+          this.documentSyncDelays.set(key, config.delay);
+        }
+      });
+      panel.onDidDispose(() => {
+        configSub.dispose();
+      });
+    }
+
     panel.onDidDispose(() => {
       this.clearDebounceTimer(key);
       this.clearScrollSyncTimer(key);
+      this.documentSyncDelays.delete(key);
       this.panels.delete(key);
     });
 

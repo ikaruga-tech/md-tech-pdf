@@ -32,6 +32,12 @@ export function getExtensionSettings(): ExtensionSettings {
       cache: {
         persistent: config.get<boolean>('preview.cache.persistent'),
       },
+      scrollSync: {
+        enabled: config.get<boolean>('preview.scrollSync.enabled'),
+        behavior: config.get<string>('preview.scrollSync.behavior'),
+        delay: config.get<number>('preview.scrollSync.delay'),
+      },
+      zoom: config.get<string>('preview.zoom'),
     },
     styles: config.get<unknown>('styles'),
   });

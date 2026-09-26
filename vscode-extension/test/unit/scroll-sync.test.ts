@@ -8,6 +8,9 @@ class MockScrollSyncPanel implements IPreviewPanelInstance {
   public isDisposed = false;
   private disposeListeners: Array<() => void> = [];
   private previewScrollListeners: Array<(line: number) => void> = [];
+  private updateConfigListeners: Array<
+    (config: { delay?: number; behavior?: 'smooth' | 'instant' }) => void
+  > = [];
 
   public reveal(_viewColumn?: vscode.ViewColumn): void {}
   public async refresh(): Promise<void> {}
@@ -23,6 +26,26 @@ class MockScrollSyncPanel implements IPreviewPanelInstance {
         this.previewScrollListeners = this.previewScrollListeners.filter((l) => l !== listener);
       },
     };
+  }
+
+  public onDidUpdateScrollSyncConfig(
+    listener: (config: { delay?: number; behavior?: 'smooth' | 'instant' }) => void
+  ): vscode.Disposable {
+    this.updateConfigListeners.push(listener);
+    return {
+      dispose: () => {
+        this.updateConfigListeners = this.updateConfigListeners.filter((l) => l !== listener);
+      },
+    };
+  }
+
+  public triggerUpdateScrollSyncConfig(config: {
+    delay?: number;
+    behavior?: 'smooth' | 'instant';
+  }): void {
+    for (const listener of this.updateConfigListeners) {
+      listener(config);
+    }
   }
 
   public triggerPreviewScroll(line: number): void {
@@ -168,5 +191,21 @@ describe('Editor to Preview Scroll Synchronization', () => {
     assert.strictEqual(revealType, (vscode as any).TextEditorRevealType.AtTop);
 
     (vscode.window as any).visibleTextEditors = [];
+  });
+
+  it('should adjust sync debounce delay dynamically when panel config changes', async () => {
+    const docPath = '/workspace/docs/fast-sync.md';
+    const docUri = vscode.Uri.file(docPath);
+    const panel = (await manager.openPreview(docUri)) as MockScrollSyncPanel;
+
+    // Update delay to 10ms
+    panel.triggerUpdateScrollSyncConfig({ delay: 10 });
+
+    manager.handleVisibleRangesChange(createVisibleRangeEventMock(docPath, 25, 40));
+
+    // After 25ms, a 10ms debounce should already have fired
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    assert.strictEqual(panel.scrolledLines.length, 1);
+    assert.strictEqual(panel.scrolledLines[0], 26);
   });
 });

@@ -74,6 +74,11 @@ export interface PreviewRenderOptions {
   extensionUri?: vscode.Uri;
 }
 
+export interface ScrollSyncConfigEvent {
+  delay?: number;
+  behavior?: 'smooth' | 'instant';
+}
+
 /**
  * Manages an individual WebviewPanel for a Markdown document preview.
  * Encapsulates Core HtmlRenderer invocation, error handling, and lifecycle.
@@ -86,6 +91,8 @@ export class PreviewPanel implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly onDisposeEmitter = new vscode.EventEmitter<void>();
   private readonly onPreviewScrollEmitter = new vscode.EventEmitter<number>();
+  private readonly onUpdateScrollSyncConfigEmitter =
+    new vscode.EventEmitter<ScrollSyncConfigEvent>();
   private readonly outputChannel: vscode.OutputChannel;
   private readonly extensionUri?: vscode.Uri;
   private diagramCache?: IDiagramRenderCache;
@@ -96,6 +103,7 @@ export class PreviewPanel implements vscode.Disposable {
 
   public readonly onDidDispose = this.onDisposeEmitter.event;
   public readonly onDidPreviewScroll = this.onPreviewScrollEmitter.event;
+  public readonly onDidUpdateScrollSyncConfig = this.onUpdateScrollSyncConfigEmitter.event;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -135,6 +143,12 @@ export class PreviewPanel implements vscode.Disposable {
           if (typeof msg.line === 'number') {
             this.onPreviewScrollEmitter.fire(msg.line);
           }
+        } else if (msg.type === 'updateScrollSyncConfig') {
+          this.onUpdateScrollSyncConfigEmitter.fire({
+            delay: typeof msg.delay === 'number' ? msg.delay : undefined,
+            behavior:
+              msg.behavior === 'instant' || msg.behavior === 'smooth' ? msg.behavior : undefined,
+          });
         } else if (msg.type === 'reload') {
           void this.render({ bypassCache: true });
         } else if (msg.type === 'exportPdf') {
@@ -364,7 +378,12 @@ export class PreviewPanel implements vscode.Disposable {
         `<script nonce="${nonce}">var exports = exports || {};</script>`,
         `<script nonce="${nonce}" src="${clientScriptUri}"></script>`,
       ].join('\n');
-      const toolbarHtml = getPreviewToolbarHtml();
+      const toolbarHtml = getPreviewToolbarHtml({
+        syncEnabled: extSettings.preview.scrollSync?.enabled,
+        syncBehavior: extSettings.preview.scrollSync?.behavior,
+        syncDelay: extSettings.preview.scrollSync?.delay,
+        zoom: extSettings.preview.zoom,
+      });
 
       let finalHtml = html;
       if (finalHtml.includes('<body')) {

@@ -12,6 +12,10 @@ describe('extension-settings', () => {
       assert.strictEqual(settings.export.afterExport, 'none');
       assert.strictEqual(settings.preview.debounceDelay, 500);
       assert.strictEqual(settings.preview.cache.persistent, true);
+      assert.strictEqual(settings.preview.scrollSync.enabled, true);
+      assert.strictEqual(settings.preview.scrollSync.behavior, 'smooth');
+      assert.strictEqual(settings.preview.scrollSync.delay, 50);
+      assert.strictEqual(settings.preview.zoom, 'fit');
     });
 
     it('should parse preview.debounceDelay setting with bounds and fallback', () => {
@@ -66,6 +70,47 @@ describe('extension-settings', () => {
         preview: { cache: { persistent: 'invalid' as unknown as boolean } },
       });
       assert.strictEqual(nonBoolSetting.preview.cache.persistent, true);
+    });
+
+    it('should parse preview.scrollSync and zoom settings with fallback', () => {
+      const custom = parseExtensionSettings({
+        preview: {
+          scrollSync: {
+            enabled: false,
+            behavior: 'instant',
+            delay: 20,
+          },
+          zoom: '75%',
+        },
+      });
+      assert.strictEqual(custom.preview.scrollSync.enabled, false);
+      assert.strictEqual(custom.preview.scrollSync.behavior, 'instant');
+      assert.strictEqual(custom.preview.scrollSync.delay, 20);
+      assert.strictEqual(custom.preview.zoom, '75%');
+
+      const zeroDelay = parseExtensionSettings({
+        preview: {
+          scrollSync: {
+            delay: 0,
+          },
+        },
+      });
+      assert.strictEqual(zeroDelay.preview.scrollSync.delay, 0);
+
+      const invalid = parseExtensionSettings({
+        preview: {
+          scrollSync: {
+            enabled: 'yes' as unknown as boolean,
+            behavior: 'fancy' as unknown as 'smooth',
+            delay: -10,
+          },
+          zoom: '300%',
+        },
+      });
+      assert.strictEqual(invalid.preview.scrollSync.enabled, true);
+      assert.strictEqual(invalid.preview.scrollSync.behavior, 'smooth');
+      assert.strictEqual(invalid.preview.scrollSync.delay, 50);
+      assert.strictEqual(invalid.preview.zoom, 'fit');
     });
 
     it('should trim string values properly', () => {
