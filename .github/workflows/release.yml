@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+          run_install: false
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+
+      - name: Install dependencies and build Core
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          npm pack
+
+      - name: Package VS Code Extension (VSIX)
+        working-directory: vscode-extension
+        run: |
+          npm ci
+          npm run build
+          npx @vscode/vsce package --no-dependencies
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            md-tech-pdf-*.tgz
+            vscode-extension/*.vsix
+          generate_release_notes: true
+          draft: false
+          prerelease: false
