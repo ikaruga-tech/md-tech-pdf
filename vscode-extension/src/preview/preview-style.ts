@@ -145,6 +145,45 @@ body {
   flex-shrink: 0;
 }
 
+/* Ensure paper sheet contents maintain high-contrast print colors irrespective of VS Code theme */
+.md-tech-pdf-preview-page code {
+  color: #1f2328 !important;
+  background-color: #eff1f3 !important;
+  border: 1px solid rgba(27, 31, 36, 0.15) !important;
+  border-radius: 4px;
+}
+
+.md-tech-pdf-preview-page pre {
+  color: #1f2328 !important;
+  background-color: #f6f8fa !important;
+  border: 1px solid #d0d7de !important;
+}
+
+.md-tech-pdf-preview-page pre code {
+  color: #1f2328 !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.md-tech-pdf-preview-page blockquote {
+  color: #4b5563 !important;
+  background-color: #f8fafc !important;
+  border-left-color: #0969da !important;
+}
+
+.md-tech-pdf-preview-page table th {
+  background-color: #f1f5f9 !important;
+  color: #1f2328 !important;
+}
+
+.md-tech-pdf-preview-page table td {
+  color: #24292f !important;
+}
+
+.md-tech-pdf-preview-page table tr:nth-child(2n) {
+  background-color: #f8fafc !important;
+}
+
 @media print {
   .preview-toolbar {
     display: none !important;

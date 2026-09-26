@@ -180,13 +180,18 @@ code {
   font-weight: 400;
   padding: 0.2em 0.4em;
   margin: 0;
-  background-color: var(--color-code-bg);
+  color: #1f2328;
+  background-color: #eff1f3;
+  border: 1px solid rgba(27, 31, 36, 0.15);
   border-radius: 4px;
 }
 
 :not(pre) > code {
   font-size: 0.9em;
   font-weight: 400;
+  color: #1f2328;
+  background-color: #eff1f3;
+  border: 1px solid rgba(27, 31, 36, 0.15);
 }
 
 pre {
@@ -197,8 +202,9 @@ pre {
   font-size: 9pt;
   font-weight: 400;
   line-height: 1.5;
-  background-color: var(--color-code-bg);
-  border: 1px solid var(--color-border);
+  color: #1f2328;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
   border-radius: 6px;
   page-break-inside: avoid;
   break-inside: avoid;
@@ -209,7 +215,9 @@ pre {
 
 pre code {
   padding: 0;
+  color: inherit;
   background-color: transparent;
+  border: none;
   border-radius: 0;
   font-size: inherit;
   line-height: inherit;
