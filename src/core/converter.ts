@@ -6,6 +6,8 @@ import { HtmlRenderer } from '../html/html-renderer.js';
 import { extractDiagramBlocks } from '../parser/markdown-parser.js';
 import { PdfGenerator } from '../pdf/pdf-generator.js';
 
+import { type IDiagramRenderCache } from '../renderer/diagram-cache.js';
+
 export type ConvertProgressStep = 'mermaid' | 'plantuml' | 'html' | 'pdf';
 
 export interface ConvertProgressEvent {
@@ -21,6 +23,7 @@ export interface ConvertAppConfig {
   style?: {
     css?: string | string[];
     customCss?: string;
+    styles?: string[];
   };
 }
 
@@ -41,6 +44,11 @@ export interface ConvertOptions {
    * Note: Front Matter specified in the document always takes precedence over this configuration.
    */
   config?: ConvertAppConfig;
+
+  /**
+   * Optional diagram rendering cache instance (e.g. MemoryDiagramCache or PersistentDiagramCache).
+   */
+  diagramCache?: IDiagramRenderCache;
 }
 
 export interface ConvertResult {
@@ -129,15 +137,26 @@ export async function convertMarkdownToPdf(
     message: 'Generating HTML...',
   });
 
-  const htmlRenderer = new HtmlRenderer();
+  const htmlRenderer = new HtmlRenderer({
+    diagramCache: options.diagramCache,
+  });
   let html: string;
+  const styleConfig = options.config?.style;
+  const resolvedStyle = styleConfig
+    ? {
+        ...styleConfig,
+        css: styleConfig.css ?? styleConfig.styles,
+      }
+    : undefined;
+
   try {
     html = await htmlRenderer.render(markdownContent, {
       title: baseName,
       basePath: path.dirname(resolvedInputPath),
+      diagramCache: options.diagramCache,
       defaultOptions: {
         plantuml: options.config?.plantuml,
-        style: options.config?.style,
+        style: resolvedStyle,
       },
     });
   } catch (err: unknown) {

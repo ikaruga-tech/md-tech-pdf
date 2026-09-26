@@ -188,6 +188,10 @@ Content with customized margins.
       const { stdout } = await execFileAsync(TSX_BIN, [CLI_PATH, '--help']);
       expect(stdout).toContain('Usage: md-tech-pdf');
       expect(stdout).toContain('-o, --output <path>');
+      expect(stdout).toContain('-s, --style <paths...>');
+      expect(stdout).toContain('--java-path <path>');
+      expect(stdout).toContain('--plantuml-jar <path>');
+      expect(stdout).toContain('--no-cache');
       expect(stdout).toContain('-h, --help');
       expect(stdout).toContain('-v, --version');
     });
@@ -234,6 +238,34 @@ Content with customized margins.
       expect(stdout).toContain('md-tech-pdf');
       expect(stdout).toContain('Input:');
       expect(stdout).toContain('Output:');
+      expect(stdout).toContain('Done.');
+
+      const exists = await fs
+        .stat(pdfPath)
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(true);
+    });
+
+    it('should convert document with --style and --no-cache CLI options', async () => {
+      const mdPath = path.join(WORK_DIR, 'cli-style-test.md');
+      const cssPath = path.join(WORK_DIR, 'cli-custom.css');
+      const pdfPath = path.join(WORK_DIR, 'cli-style-test.pdf');
+
+      await fs.writeFile(mdPath, '# Custom Style CLI\n\nStyled document content.', 'utf-8');
+      await fs.writeFile(cssPath, 'h1 { color: #1e3a8a; }', 'utf-8');
+
+      const { stdout } = await execFileAsync(TSX_BIN, [
+        CLI_PATH,
+        mdPath,
+        '-o',
+        pdfPath,
+        '--style',
+        cssPath,
+        '--no-cache',
+      ]);
+
+      expect(stdout).toContain('md-tech-pdf');
       expect(stdout).toContain('Done.');
 
       const exists = await fs

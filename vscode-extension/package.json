@@ -157,7 +157,7 @@
     "package:vsix": "vsce package"
   },
   "dependencies": {
-    "md-tech-pdf": "file:../md-tech-pdf-0.1.0.tgz"
+    "md-tech-pdf": "file:../md-tech-pdf-0.2.0.tgz"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

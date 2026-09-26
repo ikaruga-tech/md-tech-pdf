@@ -1,6 +1,6 @@
 {
   "name": "md-tech-pdf",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Technical document PDF generator from Markdown with flexible diagram layout",
   "type": "module",
   "main": "./dist/index.js",

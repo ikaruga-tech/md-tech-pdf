@@ -10,7 +10,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { convertMarkdownToPdf, resolveOutputPath } from '../core/converter.js';
+import {
+  convertMarkdownToPdf,
+  resolveOutputPath,
+  type ConvertAppConfig,
+} from '../core/converter.js';
+import { DiagramRenderCache } from '../renderer/diagram-cache.js';
 
 function getPackageVersion(): string {
   try {
@@ -27,6 +32,14 @@ function getPackageVersion(): string {
   return '0.1.0';
 }
 
+export interface CliOptions {
+  output?: string;
+  style?: string[];
+  javaPath?: string;
+  plantumlJar?: string;
+  cache?: boolean;
+}
+
 export function createCliCommand(): Command {
   const program = new Command();
 
@@ -36,8 +49,12 @@ export function createCliCommand(): Command {
     .version(getPackageVersion(), '-v, --version')
     .argument('[input]', 'Path to the input Markdown document')
     .option('-o, --output <path>', 'Destination path for the output PDF document')
+    .option('-s, --style <paths...>', 'Custom CSS stylesheet path(s) to apply')
+    .option('--java-path <path>', 'Custom path to Java binary for PlantUML')
+    .option('--plantuml-jar <path>', 'Custom path to plantuml.jar')
+    .option('--no-cache', 'Disable in-memory diagram rendering cache')
     .helpOption('-h, --help', 'Display help for command')
-    .action(async (input: string | undefined, options: { output?: string }) => {
+    .action(async (input: string | undefined, options: CliOptions) => {
       if (!input || input.trim() === '') {
         console.error('Error: Input file is required.');
         process.exit(1);
@@ -61,9 +78,26 @@ export function createCliCommand(): Command {
       console.log(`  ${displayOutput}`);
       console.log('');
 
+      const config: ConvertAppConfig = {};
+      if (options.javaPath || options.plantumlJar) {
+        config.plantuml = {
+          javaPath: options.javaPath,
+          jarPath: options.plantumlJar,
+        };
+      }
+      if (options.style && options.style.length > 0) {
+        config.style = {
+          css: options.style,
+        };
+      }
+
+      const diagramCache = options.cache !== false ? new DiagramRenderCache() : undefined;
+
       try {
         await convertMarkdownToPdf(inputPath, {
           output: options.output,
+          config,
+          diagramCache,
           onProgress: (event) => {
             console.log(event.message);
           },

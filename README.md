@@ -77,6 +77,28 @@ md-tech-pdf document.md -o output.pdf
 md-tech-pdf docs/architecture.md -o build/architecture.pdf
 ```
 
+### Applying Custom Stylesheets
+
+Inject one or more external CSS files into the generated document using `-s` or `--style`:
+
+```bash
+# Apply a single custom CSS file
+md-tech-pdf document.md -s custom.css
+
+# Apply multiple custom CSS files
+md-tech-pdf document.md -s base.css brand.css -o output.pdf
+```
+
+### Custom PlantUML Paths and Cache Options
+
+```bash
+# Specify explicit Java binary and PlantUML JAR locations
+md-tech-pdf document.md --java-path /usr/bin/java --plantuml-jar /opt/plantuml.jar
+
+# Disable in-memory diagram rendering cache
+md-tech-pdf document.md --no-cache
+```
+
 ### Help and Version
 
 ```bash
@@ -250,6 +272,33 @@ Explore sample Markdown documents and configuration patterns in the [examples/](
 
 - **CLI (`src/cli/index.ts`)**: Thin command-line wrapper handling argument parsing and calling the Core API.
 - **Core (`src/index.ts`)**: Standalone library handling document parsing, diagram execution, layout generation, and Playwright PDF printing.
+
+---
+
+## Node.js Library API
+
+You can import and integrate **md-tech-pdf** directly into Node.js applications and build scripts:
+
+```typescript
+import { convertMarkdownToPdf } from 'md-tech-pdf';
+
+const result = await convertMarkdownToPdf('docs/specification.md', {
+  output: 'dist/specification.pdf',
+  config: {
+    style: {
+      css: ['./theme/corporate.css'],
+    },
+    plantuml: {
+      javaPath: '/usr/bin/java',
+    },
+  },
+  onProgress: (event) => {
+    console.log(`[${event.step}] ${event.message}`);
+  },
+});
+
+console.log(`Generated: ${result.outputPath} (${result.bytes} bytes)`);
+```
 
 ---
 

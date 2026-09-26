@@ -77,6 +77,28 @@ md-tech-pdf document.md -o output.pdf
 md-tech-pdf docs/architecture.md -o build/architecture.pdf
 ```
 
+### カスタム CSS スタイルシートの適用
+
+`-s` または `--style` オプションで外部 CSS ファイルを読み込み、ドキュメントのデザインをカスタマイズできます。
+
+```bash
+# 単一のカスタム CSS を適用
+md-tech-pdf document.md -s custom.css
+
+# 複数のカスタム CSS を適用
+md-tech-pdf document.md -s base.css brand.css -o output.pdf
+```
+
+### PlantUML パスとキャッシュ設定
+
+```bash
+# 明示的な Java バイナリおよび PlantUML jar パスの指定
+md-tech-pdf document.md --java-path /usr/bin/java --plantuml-jar /opt/plantuml.jar
+
+# インメモリダイアグラムキャッシュの無効化
+md-tech-pdf document.md --no-cache
+```
+
 ### ヘルプ・バージョン表示
 
 ```bash
@@ -264,6 +286,33 @@ md-tech-pdf/
 ├── package.json      # プロジェクト定義・依存関係
 ├── tsconfig.json     # TypeScriptコンパイラ設定
 └── vitest.config.ts  # Vitestテストフレームワーク設定
+```
+
+---
+
+## Node.js ライブラリ API
+
+**md-tech-pdf** は Node.js スクリプトやビルドパイプラインに直接組み込んで利用できます。
+
+```typescript
+import { convertMarkdownToPdf } from 'md-tech-pdf';
+
+const result = await convertMarkdownToPdf('docs/specification.md', {
+  output: 'dist/specification.pdf',
+  config: {
+    style: {
+      css: ['./theme/corporate.css'],
+    },
+    plantuml: {
+      javaPath: '/usr/bin/java',
+    },
+  },
+  onProgress: (event) => {
+    console.log(`[${event.step}] ${event.message}`);
+  },
+});
+
+console.log(`生成完了: ${result.outputPath} (${result.bytes} bytes)`);
 ```
 
 ---

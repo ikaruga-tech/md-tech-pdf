@@ -28,21 +28,60 @@ export * from './config/frontmatter-parser.js';
 export * from './config/config-resolver.js';
 export * from './core/converter.js';
 
+import {
+  convertMarkdownToPdf,
+  resolveOutputPath,
+  type ConvertOptions,
+  type ConvertResult,
+  type ConvertProgressEvent,
+  type ConvertProgressStep,
+  type ConvertAppConfig,
+} from './core/converter.js';
+
+/**
+ * Primary high-level API to convert Markdown technical documents to vector PDF.
+ */
+export {
+  convertMarkdownToPdf,
+  resolveOutputPath,
+  type ConvertOptions,
+  type ConvertResult,
+  type ConvertProgressEvent,
+  type ConvertProgressStep,
+  type ConvertAppConfig,
+};
+
 export interface GeneratorOptions {
   inputPath?: string;
   outputPath?: string;
+  config?: ConvertAppConfig;
 }
 
 export interface GeneratorResult {
   success: boolean;
   message: string;
+  outputPath?: string;
+  bytes?: number;
 }
 
 /**
  * Entry point for document generation in Core.
- * PDF generation logic and diagram processing will be implemented here.
+ * If inputPath is provided, delegates to convertMarkdownToPdf.
  */
-export async function generatePdf(_options: GeneratorOptions = {}): Promise<GeneratorResult> {
+export async function generatePdf(options: GeneratorOptions = {}): Promise<GeneratorResult> {
+  if (options.inputPath) {
+    const result = await convertMarkdownToPdf(options.inputPath, {
+      output: options.outputPath,
+      config: options.config,
+    });
+    return {
+      success: true,
+      message: `Generated PDF at ${result.outputPath}`,
+      outputPath: result.outputPath,
+      bytes: result.bytes,
+    };
+  }
+
   return {
     success: true,
     message: 'Core generator initialized.',
