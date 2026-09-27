@@ -182,6 +182,71 @@ describe('extension-settings', () => {
       });
       assert.deepStrictEqual(mixedTypeSetting.styles, ['valid.css']);
     });
+
+    it('should parse default pdf, diagram, and font settings with fallback', () => {
+      const defaultSetting = parseExtensionSettings();
+      assert.strictEqual(defaultSetting.default.pdf.format, 'A4');
+      assert.strictEqual(defaultSetting.default.pdf.landscape, false);
+      assert.deepStrictEqual(defaultSetting.default.pdf.margin, {
+        top: '15mm',
+        bottom: '15mm',
+        left: '15mm',
+        right: '15mm',
+      });
+      assert.strictEqual(defaultSetting.default.diagram.width, undefined);
+      assert.strictEqual(defaultSetting.default.diagram.height, undefined);
+      assert.strictEqual(defaultSetting.default.diagram.fit, 'contain');
+      assert.strictEqual(defaultSetting.default.diagram.align, 'center');
+      assert.strictEqual(defaultSetting.default.style.font.family, undefined);
+      assert.strictEqual(defaultSetting.default.style.font.codeFamily, undefined);
+      assert.deepStrictEqual(defaultSetting.default.style.font.google.families, []);
+
+      const customSetting = parseExtensionSettings({
+        default: {
+          pdf: {
+            landscape: true,
+            margin: {
+              top: '20mm',
+              bottom: '25mm',
+              left: '10mm',
+              right: '10mm',
+            },
+          },
+          diagram: {
+            width: '140mm',
+            height: '80mm',
+            fit: 'fill',
+            align: 'right',
+          },
+          style: {
+            font: {
+              family: 'Noto Sans JP',
+              codeFamily: 'JetBrains Mono',
+              google: {
+                families: [{ name: 'LINE Seed JP', weights: [400, 700] }, { name: 'Roboto' }],
+              },
+            },
+          },
+        },
+      });
+
+      assert.strictEqual(customSetting.default.pdf.format, 'A4');
+      assert.strictEqual(customSetting.default.pdf.landscape, true);
+      assert.strictEqual(customSetting.default.pdf.margin.top, '20mm');
+      assert.strictEqual(customSetting.default.pdf.margin.bottom, '25mm');
+      assert.strictEqual(customSetting.default.pdf.margin.left, '10mm');
+      assert.strictEqual(customSetting.default.pdf.margin.right, '10mm');
+      assert.strictEqual(customSetting.default.diagram.width, '140mm');
+      assert.strictEqual(customSetting.default.diagram.height, '80mm');
+      assert.strictEqual(customSetting.default.diagram.fit, 'fill');
+      assert.strictEqual(customSetting.default.diagram.align, 'right');
+      assert.strictEqual(customSetting.default.style.font.family, 'Noto Sans JP');
+      assert.strictEqual(customSetting.default.style.font.codeFamily, 'JetBrains Mono');
+      assert.deepStrictEqual(customSetting.default.style.font.google.families, [
+        { name: 'LINE Seed JP', weights: [400, 700] },
+        { name: 'Roboto', weights: undefined },
+      ]);
+    });
   });
 
   describe('resolveCustomOutputPath', () => {

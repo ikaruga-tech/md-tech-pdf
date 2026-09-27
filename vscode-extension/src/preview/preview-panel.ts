@@ -302,7 +302,19 @@ export class PreviewPanel implements vscode.Disposable {
 
       const nonce = crypto.randomBytes(16).toString('base64');
       const cspTag = buildPreviewCsp(this.panel.webview.cspSource, nonce);
-      const customCss = [getPreviewBaseStyle(), buildPageDimensionStyle(docOptions.pdf)].join('\n');
+      const effectivePdfOptions = {
+        format: docOptions.pdf?.format ?? extSettings.default.pdf.format,
+        landscape: docOptions.pdf?.landscape ?? extSettings.default.pdf.landscape,
+        margin: {
+          top: docOptions.pdf?.margin?.top ?? extSettings.default.pdf.margin.top,
+          bottom: docOptions.pdf?.margin?.bottom ?? extSettings.default.pdf.margin.bottom,
+          left: docOptions.pdf?.margin?.left ?? extSettings.default.pdf.margin.left,
+          right: docOptions.pdf?.margin?.right ?? extSettings.default.pdf.margin.right,
+        },
+      };
+      const customCss = [getPreviewBaseStyle(), buildPageDimensionStyle(effectivePdfOptions)].join(
+        '\n'
+      );
 
       const resourceUrlTransformer = createResourceUrlTransformer(
         this.documentUri,
@@ -337,8 +349,11 @@ export class PreviewPanel implements vscode.Disposable {
         resourceUrlTransformer,
         diagramCache: effectiveCache,
         defaultOptions: {
+          pdf: extSettings.default.pdf,
+          diagram: extSettings.default.diagram,
           plantuml: extSettings.plantuml,
           style: {
+            font: extSettings.default.style.font,
             css: resolvedSettingsStyles.length > 0 ? resolvedSettingsStyles : undefined,
           },
         },

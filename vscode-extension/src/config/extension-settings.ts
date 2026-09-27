@@ -40,5 +40,32 @@ export function getExtensionSettings(): ExtensionSettings {
       zoom: config.get<string>('preview.zoom'),
     },
     styles: config.get<unknown>('styles'),
+    default: {
+      pdf: {
+        format: config.get<string>('default.pdf.format'),
+        landscape: config.get<boolean>('default.pdf.landscape'),
+        margin: {
+          top: config.get<string>('default.pdf.margin.top'),
+          bottom: config.get<string>('default.pdf.margin.bottom'),
+          left: config.get<string>('default.pdf.margin.left'),
+          right: config.get<string>('default.pdf.margin.right'),
+        },
+      },
+      diagram: {
+        width: config.get<string>('default.diagram.width'),
+        height: config.get<string>('default.diagram.height'),
+        fit: config.get<string>('default.diagram.fit'),
+        align: config.get<string>('default.diagram.align'),
+      },
+      style: {
+        font: {
+          family: config.get<string>('default.style.font.family'),
+          codeFamily: config.get<string>('default.style.font.codeFamily'),
+          google: {
+            families: config.get<unknown>('default.style.font.google.families'),
+          },
+        },
+      },
+    },
   });
 }

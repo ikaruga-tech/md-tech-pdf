@@ -134,6 +134,14 @@ export class HtmlRenderer {
         ...defaults?.pdf,
         ...parsedDocOptions.pdf,
         ...overrides?.pdf,
+        margin:
+          defaults?.pdf?.margin || parsedDocOptions.pdf?.margin || overrides?.pdf?.margin
+            ? {
+                ...defaults?.pdf?.margin,
+                ...parsedDocOptions.pdf?.margin,
+                ...overrides?.pdf?.margin,
+              }
+            : undefined,
       },
       mermaid: {
         ...defaults?.mermaid,
@@ -153,6 +161,10 @@ export class HtmlRenderer {
           ...defaults?.style?.font,
           ...parsedDocOptions.style?.font,
           ...overrides?.style?.font,
+          google:
+            overrides?.style?.font?.google ??
+            parsedDocOptions.style?.font?.google ??
+            defaults?.style?.font?.google,
         },
       },
     };

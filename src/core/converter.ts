@@ -6,6 +6,11 @@ import { HtmlRenderer } from '../html/html-renderer.js';
 import { extractDiagramBlocks } from '../parser/markdown-parser.js';
 import { PdfGenerator } from '../pdf/pdf-generator.js';
 
+import {
+  type DiagramDefaultOptions,
+  type PdfDocumentOptions,
+  type StyleDocumentOptions,
+} from '../config/document-options.js';
 import { type IDiagramRenderCache } from '../renderer/diagram-cache.js';
 
 export type ConvertProgressStep = 'mermaid' | 'plantuml' | 'html' | 'pdf';
@@ -16,13 +21,13 @@ export interface ConvertProgressEvent {
 }
 
 export interface ConvertAppConfig {
+  pdf?: PdfDocumentOptions;
+  diagram?: DiagramDefaultOptions;
   plantuml?: {
     javaPath?: string;
     jarPath?: string;
   };
-  style?: {
-    css?: string | string[];
-    customCss?: string;
+  style?: StyleDocumentOptions & {
     styles?: string[];
   };
 }
@@ -155,6 +160,8 @@ export async function convertMarkdownToPdf(
       basePath: path.dirname(resolvedInputPath),
       diagramCache: options.diagramCache,
       defaultOptions: {
+        pdf: options.config?.pdf,
+        diagram: options.config?.diagram,
         plantuml: options.config?.plantuml,
         style: resolvedStyle,
       },
@@ -175,7 +182,18 @@ export async function convertMarkdownToPdf(
   });
 
   const pdfGenerator = new PdfGenerator();
-  const pdfOptions = resolvePdfOptions(docOptions.pdf);
+  const effectivePdfOptions = {
+    ...options.config?.pdf,
+    ...docOptions.pdf,
+    margin:
+      options.config?.pdf?.margin || docOptions.pdf?.margin
+        ? {
+            ...options.config?.pdf?.margin,
+            ...docOptions.pdf?.margin,
+          }
+        : undefined,
+  };
+  const pdfOptions = resolvePdfOptions(effectivePdfOptions);
 
   try {
     await pdfGenerator.generate(html, outputPath, pdfOptions);

@@ -177,8 +177,11 @@ export async function executePdfExport(
             progress.report({ message: event.message });
           },
           config: {
+            pdf: extSettings.default.pdf,
+            diagram: extSettings.default.diagram,
             plantuml: extSettings.plantuml,
             style: {
+              font: extSettings.default.style.font,
               css: resolvedStyles.length > 0 ? resolvedStyles : undefined,
             },
           },

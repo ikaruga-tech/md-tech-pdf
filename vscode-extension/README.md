@@ -164,6 +164,19 @@ Configure extension settings via VS Code Settings (`Preferences: Open User Setti
 - `md-tech-pdf.plantuml.jarPath`: Path to the local `plantuml.jar` file (default: `""`).
 - `md-tech-pdf.export.outputDirectory`: Default output directory for exports. Leave empty to output next to the source Markdown file (default: `""`).
 - `md-tech-pdf.export.afterExport`: Action to perform automatically after export: `"none"`, `"open"` (open in editor), or `"reveal"` (reveal in OS file manager) (default: `"none"`).
+- `md-tech-pdf.default.pdf.format`: Default PDF paper format when unspecified in Front Matter (default: `"A4"`).
+- `md-tech-pdf.default.pdf.landscape`: Default PDF page orientation (default: `false`).
+- `md-tech-pdf.default.pdf.margin.top`: Default PDF page top margin (default: `"15mm"`).
+- `md-tech-pdf.default.pdf.margin.bottom`: Default PDF page bottom margin (default: `"15mm"`).
+- `md-tech-pdf.default.pdf.margin.left`: Default PDF page left margin (default: `"15mm"`).
+- `md-tech-pdf.default.pdf.margin.right`: Default PDF page right margin (default: `"15mm"`).
+- `md-tech-pdf.default.diagram.width`: Default diagram container width when unspecified in Front Matter (default: `""`).
+- `md-tech-pdf.default.diagram.height`: Default diagram container height when unspecified in Front Matter (default: `""`).
+- `md-tech-pdf.default.diagram.fit`: Default diagram fit behavior (`"contain"` or `"fill"`, default: `"contain"`).
+- `md-tech-pdf.default.diagram.align`: Default diagram alignment (`"center"`, `"left"`, or `"right"`, default: `"center"`).
+- `md-tech-pdf.default.style.font.family`: Default body font family when unspecified in Front Matter (default: `""`).
+- `md-tech-pdf.default.style.font.codeFamily`: Default code font family when unspecified in Front Matter (default: `""`).
+- `md-tech-pdf.default.style.font.google.families`: Default Google Fonts to load when unspecified in Front Matter (default: `[]`).
 
 ## Known Limitations
 

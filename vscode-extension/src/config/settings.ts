@@ -5,6 +5,49 @@ export type PreviewRefreshMode = 'manual' | 'onSave' | 'onType';
 export type ScrollSyncBehavior = 'smooth' | 'instant';
 export type PreviewZoomLevel = 'fit' | '50%' | '75%' | '100%' | '125%' | '150%';
 
+export interface DefaultPdfMarginSettings {
+  top: string;
+  bottom: string;
+  left: string;
+  right: string;
+}
+
+export interface DefaultPdfSettings {
+  format: 'A4';
+  landscape: boolean;
+  margin: DefaultPdfMarginSettings;
+}
+
+export interface DefaultDiagramSettings {
+  width?: string;
+  height?: string;
+  fit: 'contain' | 'fill';
+  align: 'center' | 'left' | 'right';
+}
+
+export interface DefaultGoogleFontFamilySetting {
+  name: string;
+  weights?: number[];
+}
+
+export interface DefaultStyleFontSettings {
+  family?: string;
+  codeFamily?: string;
+  google: {
+    families: DefaultGoogleFontFamilySetting[];
+  };
+}
+
+export interface DefaultStyleSettings {
+  font: DefaultStyleFontSettings;
+}
+
+export interface DefaultDocumentSettings {
+  pdf: DefaultPdfSettings;
+  diagram: DefaultDiagramSettings;
+  style: DefaultStyleSettings;
+}
+
 export interface ExtensionSettings {
   plantuml: {
     javaPath: string;
@@ -28,6 +71,7 @@ export interface ExtensionSettings {
     zoom: PreviewZoomLevel;
   };
   styles: string[];
+  default: DefaultDocumentSettings;
 }
 
 export interface RawExtensionSettings {
@@ -53,6 +97,33 @@ export interface RawExtensionSettings {
     zoom?: string;
   };
   styles?: unknown;
+  default?: {
+    pdf?: {
+      format?: string;
+      landscape?: boolean;
+      margin?: {
+        top?: string;
+        bottom?: string;
+        left?: string;
+        right?: string;
+      };
+    };
+    diagram?: {
+      width?: string;
+      height?: string;
+      fit?: string;
+      align?: string;
+    };
+    style?: {
+      font?: {
+        family?: string;
+        codeFamily?: string;
+        google?: {
+          families?: unknown;
+        };
+      };
+    };
+  };
 }
 
 /**
@@ -115,6 +186,44 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
       .filter((s) => s.length > 0);
   }
 
+  // Parse default document options (pdf, diagram, style.font)
+  const defaultRaw = raw?.default;
+
+  const defaultPdfFormat = defaultRaw?.pdf?.format === 'A4' ? 'A4' : 'A4';
+  const defaultPdfLandscape = Boolean(defaultRaw?.pdf?.landscape);
+  const defaultPdfMarginTop = defaultRaw?.pdf?.margin?.top?.trim() || '15mm';
+  const defaultPdfMarginBottom = defaultRaw?.pdf?.margin?.bottom?.trim() || '15mm';
+  const defaultPdfMarginLeft = defaultRaw?.pdf?.margin?.left?.trim() || '15mm';
+  const defaultPdfMarginRight = defaultRaw?.pdf?.margin?.right?.trim() || '15mm';
+
+  const defaultDiagramWidth = defaultRaw?.diagram?.width?.trim() || undefined;
+  const defaultDiagramHeight = defaultRaw?.diagram?.height?.trim() || undefined;
+  const defaultDiagramFit = defaultRaw?.diagram?.fit === 'fill' ? 'fill' : 'contain';
+  const defaultDiagramAlign =
+    defaultRaw?.diagram?.align === 'left' || defaultRaw?.diagram?.align === 'right'
+      ? defaultRaw.diagram.align
+      : 'center';
+
+  const defaultFontFamily = defaultRaw?.style?.font?.family?.trim() || undefined;
+  const defaultCodeFontFamily = defaultRaw?.style?.font?.codeFamily?.trim() || undefined;
+
+  const defaultGoogleFamilies: DefaultGoogleFontFamilySetting[] = [];
+  if (Array.isArray(defaultRaw?.style?.font?.google?.families)) {
+    for (const item of defaultRaw.style.font.google.families) {
+      if (item && typeof item === 'object' && 'name' in item && typeof item.name === 'string') {
+        const name = item.name.trim();
+        if (name) {
+          const rawWeights = (item as { weights?: unknown }).weights;
+          const weights =
+            Array.isArray(rawWeights) && rawWeights.every((w) => typeof w === 'number')
+              ? rawWeights.map((w) => Math.floor(w))
+              : undefined;
+          defaultGoogleFamilies.push({ name, weights });
+        }
+      }
+    }
+  }
+
   return {
     plantuml: {
       javaPath,
@@ -138,6 +247,33 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
       zoom,
     },
     styles,
+    default: {
+      pdf: {
+        format: defaultPdfFormat,
+        landscape: defaultPdfLandscape,
+        margin: {
+          top: defaultPdfMarginTop,
+          bottom: defaultPdfMarginBottom,
+          left: defaultPdfMarginLeft,
+          right: defaultPdfMarginRight,
+        },
+      },
+      diagram: {
+        width: defaultDiagramWidth,
+        height: defaultDiagramHeight,
+        fit: defaultDiagramFit,
+        align: defaultDiagramAlign,
+      },
+      style: {
+        font: {
+          family: defaultFontFamily,
+          codeFamily: defaultCodeFontFamily,
+          google: {
+            families: defaultGoogleFamilies,
+          },
+        },
+      },
+    },
   };
 }
 

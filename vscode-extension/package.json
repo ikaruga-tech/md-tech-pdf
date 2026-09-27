@@ -177,6 +177,102 @@
           },
           "default": [],
           "description": "List of custom CSS file paths (relative to workspace or document) to apply to preview and PDF export."
+        },
+        "md-tech-pdf.default.pdf.format": {
+          "type": "string",
+          "enum": [
+            "A4"
+          ],
+          "default": "A4",
+          "description": "Default PDF paper format when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.pdf.landscape": {
+          "type": "boolean",
+          "default": false,
+          "description": "Default PDF page orientation (true for landscape, false for portrait) when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.pdf.margin.top": {
+          "type": "string",
+          "default": "15mm",
+          "description": "Default PDF page top margin when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.pdf.margin.bottom": {
+          "type": "string",
+          "default": "15mm",
+          "description": "Default PDF page bottom margin when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.pdf.margin.left": {
+          "type": "string",
+          "default": "15mm",
+          "description": "Default PDF page left margin when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.pdf.margin.right": {
+          "type": "string",
+          "default": "15mm",
+          "description": "Default PDF page right margin when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.diagram.width": {
+          "type": "string",
+          "default": "",
+          "description": "Default diagram container width (e.g. '140mm', '80%') when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.diagram.height": {
+          "type": "string",
+          "default": "",
+          "description": "Default diagram container height (e.g. '80mm', '400px') when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.diagram.fit": {
+          "type": "string",
+          "enum": [
+            "contain",
+            "fill"
+          ],
+          "default": "contain",
+          "description": "Default diagram fit behavior ('contain' or 'fill') when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.diagram.align": {
+          "type": "string",
+          "enum": [
+            "center",
+            "left",
+            "right"
+          ],
+          "default": "center",
+          "description": "Default diagram alignment ('center', 'left', or 'right') when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.style.font.family": {
+          "type": "string",
+          "default": "",
+          "description": "Default font family for body text when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.style.font.codeFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Default font family for code blocks and monospace text when unspecified in Front Matter."
+        },
+        "md-tech-pdf.default.style.font.google.families": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Google Font family name (e.g. 'LINE Seed JP', 'Noto Sans JP')."
+              },
+              "weights": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "List of font weights to load (e.g. [400, 700])."
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "default": [],
+          "description": "Default Google Fonts to load when unspecified in Front Matter."
         }
       }
     }
