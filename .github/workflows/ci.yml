@@ -31,6 +31,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
+      - name: Configure Linux kernel for unprivileged user namespaces
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -78,6 +82,10 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
           npm pack
+
+      - name: Configure Linux kernel for unprivileged user namespaces
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Setup Linux display server (Xvfb)
         if: runner.os == 'Linux'
