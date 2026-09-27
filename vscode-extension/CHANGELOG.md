@@ -5,7 +5,7 @@ All notable changes to the "md-tech-pdf" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2026-09-26
+## [0.5.0] - 2026-09-27
 
 ### Added
 
@@ -19,14 +19,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `md-tech-pdf.clearDiagramCache` command (`md-tech-pdf: Clear Diagram Cache`) to safely purge cached diagrams with user feedback notification.
 - Configurable Auto Refresh debounce delay:
   - Added `md-tech-pdf.preview.debounceDelay` setting (default: `500` ms, minimum: `100` ms, maximum: `5000` ms) for fine-grained tuning of typing refresh latency.
+- Dynamic Preview Toolbar controls for Scroll Synchronization and Zoom:
+  - Added scroll animation toggle button (`Anim: smooth / instant`) to adjust synchronization transition behavior on the fly.
+  - Added scroll debounce interval toggle button (`Delay: 0ms / 20ms / 50ms / 100ms`) to minimize lag during editing.
+  - Interactive toolbar states persisted across editor reloads via `vscode.setState` and updated in active settings.
+- Default Front Matter Configuration via VS Code Settings:
+  - Added fallback configurations when omitted from document Front Matter:
+    - `md-tech-pdf.default.pdf.format`, `md-tech-pdf.default.pdf.landscape`, `md-tech-pdf.default.pdf.margin.*` (top, bottom, left, right)
+    - `md-tech-pdf.default.diagram.width`, `md-tech-pdf.default.diagram.height`, `md-tech-pdf.default.diagram.fit`, `md-tech-pdf.default.diagram.align`
+    - `md-tech-pdf.default.style.font.family`, `md-tech-pdf.default.style.font.codeFamily`, `md-tech-pdf.default.style.font.google.families`
+  - Strict cascading precedence: Code Block Attributes > Front Matter > VS Code Settings > Built-in Defaults.
+- Default preview settings in VS Code Configuration:
+  - `md-tech-pdf.preview.scrollSync.enabled` (default: `true`)
+  - `md-tech-pdf.preview.scrollSync.behavior` (default: `"smooth"`)
+  - `md-tech-pdf.preview.scrollSync.delay` (default: `50`)
+  - `md-tech-pdf.preview.zoom` (default: `"fit"`)
 
 ### Improved
 
 - Near-instant preview rendering for previously opened documents across VS Code restarts via persistent diagram caching.
+- Overhauled Preview Zoom architecture:
+  - Preview canvas fixed at 100% width, scaling the page sheet container (`.md-tech-pdf-preview-page`) smoothly instead of outer container.
+  - Eliminated awkward horizontal scrolling and left-edge clipping during zoom.
+  - Dynamic `Fit Width` computation responding accurately to window resize events.
+- Contrast and visual hierarchy polish:
+  - Improved contrast and readability for code blocks and inline code elements.
 
 ### Known Limitations
 
-- Preview approximates PDF layout but is not exact print-level pagination.
+- Preview provides a PDF-like visual layout, not exact print-level pagination.
 - Local resources referenced from CSS `url(...)` are not rewritten.
 
 ## [0.4.1] - 2026-09-25

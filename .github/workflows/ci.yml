@@ -83,7 +83,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libasound2 libgbm1
+          sudo apt-get install -y xvfb libgbm1
+          sudo apt-get install -y libasound2t64 2>/dev/null || sudo apt-get install -y libasound2
 
       - name: Install extension dependencies
         working-directory: vscode-extension

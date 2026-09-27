@@ -377,7 +377,8 @@ export class HtmlRenderer {
           externalCssParts.push(cssContent);
         } catch (err: unknown) {
           throw new Error(
-            `Failed to load custom CSS file "${rawPath}" (resolved: "${resolvedPath}"): ${err instanceof Error ? err.message : String(err)}`
+            `Failed to load custom CSS file "${rawPath}" (resolved: "${resolvedPath}"): ${err instanceof Error ? err.message : String(err)}`,
+            { cause: err }
           );
         }
       }
