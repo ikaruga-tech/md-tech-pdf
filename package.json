@@ -37,7 +37,10 @@
     "dev:html": "tsx tools/test-html.ts",
     "dev:pdf": "tsx tools/test-pdf.ts",
     "dev:plantuml": "tsx tools/test-plantuml.ts",
-    "benchmark": "tsx benchmarks/run-benchmark.ts"
+    "benchmark": "tsx benchmarks/run-benchmark.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [
     "markdown",
@@ -60,6 +63,7 @@
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0",
+    "vitepress": "^1.6.4",
     "vitest": "^5.0.0"
   },
   "dependencies": {

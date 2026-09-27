@@ -27,6 +27,8 @@ vscode-extension/dist/
 vscode-extension/out/
 .vscode-test/
 vscode-extension/.vscode-test/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 
 *.tsbuildinfo
 *.tgz

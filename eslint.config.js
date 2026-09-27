@@ -28,6 +28,8 @@ export default tsPlugin.config(
       'vscode-extension/**',
       'tools/**',
       '.vscode-test/**',
+      'docs/.vitepress/dist/**',
+      'docs/.vitepress/cache/**',
     ],
   }
 );
