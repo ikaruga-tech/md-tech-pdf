@@ -30,6 +30,7 @@ export default tsPlugin.config(
       '.vscode-test/**',
       'docs/.vitepress/dist/**',
       'docs/.vitepress/cache/**',
+      '.puppeteerrc.cjs',
     ],
   }
 );
