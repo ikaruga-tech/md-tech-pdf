@@ -171,9 +171,22 @@ body {
   border-left-color: #0969da !important;
 }
 
+.md-tech-pdf-preview-page .table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.md-tech-pdf-preview-page table {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .md-tech-pdf-preview-page table th {
   background-color: #f1f5f9 !important;
   color: #1f2328 !important;
+  font-weight: 600 !important;
 }
 
 .md-tech-pdf-preview-page table td {
@@ -182,6 +195,16 @@ body {
 
 .md-tech-pdf-preview-page table tr:nth-child(2n) {
   background-color: #f8fafc !important;
+}
+
+.md-tech-pdf-preview-page table code {
+  color: #1f2328 !important;
+  background-color: #eff1f3 !important;
+  border: 1px solid rgba(27, 31, 36, 0.15) !important;
+  border-radius: 3px;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 @media print {

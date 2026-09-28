@@ -76,7 +76,8 @@ Inline \`code\` here.
     expect(html).toContain('<ol>');
     expect(html).toContain('<li>First</li>');
     expect(html).toContain('<blockquote>');
-    expect(html).toContain('<table>');
+    expect(html).toContain('<div class="table-container"><table>');
+    expect(html).toContain('</table>\n</div>');
     expect(html).toContain('<th>Header 1</th>');
     expect(html).toContain('<td>Val 1</td>');
     expect(html).toContain('<code>code</code>');

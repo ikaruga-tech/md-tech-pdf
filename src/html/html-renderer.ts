@@ -104,6 +104,21 @@ export class HtmlRenderer {
       linkify: true,
       typographer: false,
     });
+
+    const defaultTableOpen =
+      this.md.renderer.rules.table_open ||
+      ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+    const defaultTableClose =
+      this.md.renderer.rules.table_close ||
+      ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+
+    this.md.renderer.rules.table_open = (tokens, idx, options, env, self) => {
+      return '<div class="table-container">' + defaultTableOpen(tokens, idx, options, env, self);
+    };
+
+    this.md.renderer.rules.table_close = (tokens, idx, options, env, self) => {
+      return defaultTableClose(tokens, idx, options, env, self) + '</div>';
+    };
   }
 
   /**

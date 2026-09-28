@@ -143,34 +143,61 @@ blockquote > :first-child { margin-top: 0; }
 blockquote > :last-child { margin-bottom: 0; }
 
 /* Tables */
+.table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
+  max-width: 100%;
   margin-top: 1rem;
   margin-bottom: 1.5rem;
   display: table;
   table-layout: auto;
+  font-size: 0.88em;
+  box-sizing: border-box;
+}
+
+.table-container > table {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 table th, table td {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid var(--color-border);
   text-align: left;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-  word-break: normal;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 table th {
   background-color: #f0f3f6;
-  font-weight: 400;
+  font-weight: 600;
   border-bottom: 2px solid #cbd5e1;
-  word-break: keep-all;
-  overflow-wrap: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 table tr:nth-child(2n) {
   background-color: #fafbfc;
+}
+
+table code {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding: 0.1em 0.3em;
+  font-size: 90%;
 }
 
 /* Code and Preformatted text */
@@ -251,6 +278,9 @@ hr {
 }
 
 @media print {
+  .table-container {
+    overflow-x: visible !important;
+  }
   .page-break {
     page-break-before: always !important;
     break-before: page !important;
