@@ -460,7 +460,58 @@ declare function acquireVsCodeApi(): VsCodeApi;
     return /break-before\s*:\s*page/i.test(style) || /page-break-before\s*:\s*always/i.test(style);
   }
 
-  // Splits document contents into physical page containers if page break markers exist
+  // Helper to measure accurate available content height per page in pixels
+  function getPageContentMaxHeight(): number {
+    const canvas = document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas');
+    const firstPage = canvas?.querySelector<HTMLElement>('.md-tech-pdf-preview-page');
+    if (!firstPage) {
+      return 1000;
+    }
+
+    const computed = window.getComputedStyle(firstPage);
+    const padTop = parseFloat(computed.paddingTop) || 0;
+    const padBottom = parseFloat(computed.paddingBottom) || 0;
+    const resolvedMinHeight = parseFloat(computed.minHeight) || 1123;
+    const availableHeight = resolvedMinHeight - padTop - padBottom;
+
+    // Reserve 28px buffer for page number badge and spacing
+    return Math.max(availableHeight - 28, 400);
+  }
+
+  // Helper to calculate total layout height of a node including margins
+  function getNodeLayoutHeight(node: Node): number {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (isPageBreakElement(el)) {
+        return 0;
+      }
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const marginTop = parseFloat(style.marginTop) || 0;
+      const marginBottom = parseFloat(style.marginBottom) || 0;
+      return (rect.height || el.offsetHeight) + marginTop + marginBottom;
+    }
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      return text ? 24 : 0;
+    }
+    return 0;
+  }
+
+  // Helper to detect heading elements for orphan heading prevention
+  function isHeadingElement(node: Node): boolean {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      return /^H[1-6]$/i.test((node as HTMLElement).tagName);
+    }
+    return false;
+  }
+
+  interface PageBreakGroup {
+    nodes: Node[];
+    hasExplicitBreakBefore: boolean;
+  }
+
+  // Splits document contents into physical page containers (explicit breaks and automatic pagination)
   function setupDocumentPages() {
     const canvas = document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas');
     if (!canvas || canvas.dataset.pagesSplit === 'true') {
@@ -473,22 +524,74 @@ declare function acquireVsCodeApi(): VsCodeApi;
     }
 
     const childNodes = Array.from(firstPage.childNodes);
-    const pageGroups: Node[][] = [[]];
+    if (childNodes.length === 0) {
+      return;
+    }
 
+    // 1. Group by explicit page break markers (e.g. ######## or break-before: page)
+    const explicitChapters: Node[][] = [[]];
     for (const node of childNodes) {
       if (isPageBreakElement(node)) {
-        pageGroups.push([]);
+        explicitChapters.push([]);
       } else {
-        pageGroups[pageGroups.length - 1].push(node);
+        explicitChapters[explicitChapters.length - 1].push(node);
       }
     }
 
-    if (pageGroups.length > 1) {
+    // 2. Perform automatic pagination within each chapter based on page height
+    const pageMaxHeight = getPageContentMaxHeight();
+    const finalPages: PageBreakGroup[] = [];
+
+    explicitChapters.forEach((chapterNodes, chapterIndex) => {
+      if (chapterNodes.length === 0) {
+        return;
+      }
+
+      let currentPageNodes: Node[] = [];
+      let currentHeight = 0;
+      let isFirstInChapter = true;
+
+      for (let i = 0; i < chapterNodes.length; i++) {
+        const node = chapterNodes[i];
+        const nodeHeight = getNodeLayoutHeight(node);
+
+        if (nodeHeight <= 0) {
+          currentPageNodes.push(node);
+          continue;
+        }
+
+        // For headings, prevent orphan headings by checking if heading + following content (~60px) fits
+        const requiredHeight = isHeadingElement(node) ? nodeHeight + 60 : nodeHeight;
+
+        if (currentHeight > 0 && currentHeight + requiredHeight > pageMaxHeight) {
+          finalPages.push({
+            nodes: currentPageNodes,
+            hasExplicitBreakBefore: isFirstInChapter && chapterIndex > 0,
+          });
+          isFirstInChapter = false;
+          currentPageNodes = [node];
+          currentHeight = nodeHeight;
+        } else {
+          currentPageNodes.push(node);
+          currentHeight += nodeHeight;
+        }
+      }
+
+      if (currentPageNodes.length > 0) {
+        finalPages.push({
+          nodes: currentPageNodes,
+          hasExplicitBreakBefore: isFirstInChapter && chapterIndex > 0,
+        });
+      }
+    });
+
+    // 3. Render page elements into canvas
+    if (finalPages.length > 1) {
       firstPage.innerHTML = '';
       canvas.innerHTML = '';
 
-      pageGroups.forEach((groupNodes, index) => {
-        if (index > 0) {
+      finalPages.forEach((pageInfo, index) => {
+        if (pageInfo.hasExplicitBreakBefore) {
           const divider = document.createElement('div');
           divider.className = 'page-break-divider';
           canvas.appendChild(divider);
@@ -498,7 +601,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
         pageEl.className = 'md-tech-pdf-preview-page';
         pageEl.dataset.pageIndex = String(index + 1);
 
-        groupNodes.forEach((n) => pageEl.appendChild(n));
+        pageInfo.nodes.forEach((n) => pageEl.appendChild(n));
 
         const badge = document.createElement('div');
         badge.className = 'page-number-badge';

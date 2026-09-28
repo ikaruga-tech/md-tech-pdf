@@ -378,7 +378,7 @@ export function buildPageDimensionStyle(pdfOptions?: PdfDocumentOptions): string
   max-width: 900px !important;
   min-height: auto !important;
   margin: 0 auto !important;
-  padding: 16px 32px !important;
+  padding: 0 32px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   border-radius: 0;
   background-color: #ffffff;
