@@ -201,6 +201,7 @@ export interface PreviewToolbarInitialSettings {
   syncBehavior?: 'smooth' | 'instant';
   syncDelay?: number;
   zoom?: 'fit' | '50%' | '75%' | '100%' | '125%' | '150%';
+  viewMode?: 'paged' | 'continuous';
 }
 
 /**
@@ -211,9 +212,10 @@ export function getPreviewToolbarHtml(initialSettings?: PreviewToolbarInitialSet
   const syncBehavior = initialSettings?.syncBehavior ?? 'smooth';
   const syncDelay = initialSettings?.syncDelay ?? 50;
   const zoom = initialSettings?.zoom ?? 'fit';
+  const viewMode = initialSettings?.viewMode ?? 'paged';
 
   return `
-<div class="preview-toolbar" role="toolbar" aria-label="Markdown Technical PDF Preview Toolbar" data-default-sync-enabled="${syncEnabled}" data-default-sync-anim="${syncBehavior}" data-default-sync-delay="${syncDelay}" data-default-zoom="${zoom}">
+<div class="preview-toolbar" role="toolbar" aria-label="Markdown Technical PDF Preview Toolbar" data-default-sync-enabled="${syncEnabled}" data-default-sync-anim="${syncBehavior}" data-default-sync-delay="${syncDelay}" data-default-zoom="${zoom}" data-default-view-mode="${viewMode}">
   <div class="preview-toolbar-left">
     <button id="btn-toolbar-reload" class="toolbar-btn" type="button" title="Reload preview bypassing diagram cache">
       <span>↻</span> Reload
@@ -241,6 +243,11 @@ export function getPreviewToolbarHtml(initialSettings?: PreviewToolbarInitialSet
       <option value="100%"${zoom === '100%' ? ' selected' : ''}>100%</option>
       <option value="125%"${zoom === '125%' ? ' selected' : ''}>125%</option>
       <option value="150%"${zoom === '150%' ? ' selected' : ''}>150%</option>
+    </select>
+    <label for="select-toolbar-view-mode" class="toolbar-label">View:</label>
+    <select id="select-toolbar-view-mode" class="toolbar-select" title="Document view mode: Paged (sheet-by-sheet) or Continuous (seamless)">
+      <option value="paged"${viewMode === 'paged' ? ' selected' : ''}>Paged</option>
+      <option value="continuous"${viewMode === 'continuous' ? ' selected' : ''}>Continuous</option>
     </select>
   </div>
   <div class="preview-toolbar-right">
@@ -296,10 +303,111 @@ export function buildPageDimensionStyle(pdfOptions?: PdfDocumentOptions): string
   const padding = resolvePagePadding(pdfOptions);
 
   return `
+/* Default and Paged View Mode */
 .md-tech-pdf-preview-page {
   width: ${width};
   min-height: ${minHeight};
   padding: ${padding};
+}
+
+.view-mode-paged .md-tech-pdf-preview-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.view-mode-paged .md-tech-pdf-preview-page {
+  width: ${width};
+  min-height: ${minHeight};
+  padding: ${padding};
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.view-mode-paged .page-number-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, sans-serif);
+  color: #8c959f;
+  user-select: none;
+  pointer-events: none;
+}
+
+.view-mode-paged .page-break {
+  display: none !important;
+}
+
+/* Continuous View Mode (Web / MPE layout) */
+.view-mode-continuous .md-tech-pdf-preview-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 24px 16px;
+}
+
+.view-mode-continuous .md-tech-pdf-preview-page {
+  width: 100% !important;
+  max-width: 900px !important;
+  min-height: auto !important;
+  margin: 0 auto !important;
+  padding: 16px 32px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 0;
+  background-color: #ffffff;
+}
+
+.view-mode-continuous .md-tech-pdf-preview-page:first-of-type {
+  padding-top: 32px !important;
+  border-top-left-radius: 4px !important;
+  border-top-right-radius: 4px !important;
+}
+
+.view-mode-continuous .md-tech-pdf-preview-page:last-of-type {
+  padding-bottom: 32px !important;
+  border-bottom-left-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+.view-mode-continuous .page-number-badge {
+  display: none !important;
+}
+
+.view-mode-continuous .page-break-divider,
+.view-mode-continuous .page-break {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 2.5rem 0;
+  width: 100%;
+  max-width: 900px;
+  border-top: 1px dashed rgba(128, 128, 128, 0.4);
+  position: relative;
+  height: 1px;
+}
+
+.view-mode-continuous .page-break-divider::after,
+.view-mode-continuous .page-break::after {
+  content: '改ページ (Page Break)';
+  font-size: 11px;
+  font-family: var(--vscode-font-family, sans-serif);
+  color: #656d76;
+  background-color: #ffffff;
+  padding: 0 10px;
+  position: absolute;
+  top: -8px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.view-mode-paged .page-break-divider,
+.view-mode-paged .page-break {
+  display: none !important;
 }
 `;
 }

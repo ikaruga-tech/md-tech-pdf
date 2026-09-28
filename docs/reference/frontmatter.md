@@ -59,3 +59,17 @@ style:
 - `font.google.families`: Array of Google Fonts to load with optional `weights`.
 - `css`: Relative path(s) to external CSS files.
 - `customCss`: Inline raw CSS rules.
+
+## Page Breaks
+
+To insert an explicit page break without triggering MarkdownLint inline-HTML warnings (`MD033`), write 8 consecutive hash characters (`########`) on an isolated line:
+
+```markdown
+Section content on page 1.
+
+########
+
+Section content on page 2.
+```
+
+`md-tech-pdf` safely transforms `########` into a print page break (`break-before: page`), cleanly splitting content in both PDF export and the VS Code paged preview.

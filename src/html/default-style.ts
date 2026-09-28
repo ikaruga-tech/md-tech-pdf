@@ -244,6 +244,22 @@ hr {
   border: 0;
 }
 
+/* Page break utilities */
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+@media print {
+  .page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* Diagram Container & Alignment */
 .md-tech-diagram {
   margin-top: 1.5rem;

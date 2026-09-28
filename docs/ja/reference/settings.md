@@ -6,6 +6,7 @@ VS Code の `settings.json` を通じて、拡張機能の各種動作やフォ�
 
 ### プレビューと同期
 
+- `md-tech-pdf.preview.defaultViewMode`: プレビュー初期表示モード（`"paged"`: ページ分割モード, `"continuous"`: 連続スクロールモード、既定値: `"paged"`）。
 - `md-tech-pdf.preview.refresh`: プレビュー自動更新の契機（`"onType"`, `"onSave"`, `"manual"`）。
 - `md-tech-pdf.preview.debounceDelay`: 入力中自動更新（`onType`）の待機時間ミリ秒（既定値: `500`、最小: `100`、最大: `5000`）。
 - `md-tech-pdf.preview.scrollSync.enabled`: 双方向スクロール同期の有効/無効（既定値: `true`）。

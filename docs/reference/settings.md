@@ -6,6 +6,7 @@ Configure default extension behaviors and fallback configurations via VS Code Se
 
 ### Preview & Synchronization
 
+- `md-tech-pdf.preview.defaultViewMode`: Default preview display mode (`"paged"` or `"continuous"`, default: `"paged"`).
 - `md-tech-pdf.preview.refresh`: When to refresh preview (`"onType"`, `"onSave"`, `"manual"`).
 - `md-tech-pdf.preview.debounceDelay`: Delay in milliseconds for `onType` refresh (default: `500`, min: `100`, max: `5000`).
 - `md-tech-pdf.preview.scrollSync.enabled`: Enable/disable bi-directional scroll synchronization (default: `true`).

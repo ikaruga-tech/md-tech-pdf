@@ -12,10 +12,13 @@ A standalone command-line interface (CLI) is also available in the repository fo
 
 ## Features
 
-- **Live Print-Preview**: Real-time side-by-side preview matching actual PDF paper dimensions, custom margins, and typography.
+- **Dual Preview Modes (Paged & Continuous)**:
+  - **Paged View**: Realistic print preview matching actual PDF paper dimensions, custom margins, page drop-shadows, and page number badges. Respects Front Matter `pdf` geometry or default settings.
+  - **Continuous View**: Seamless, full-width continuous scroll mode similar to standard Markdown previews (MarkdownPreviewEnhanced-like). Page break indicators appear as divider lines without physical page gaps.
+- **MarkdownLint-Compliant Page Breaks**: Use 8 consecutive hashes (`########`) on an isolated line to force a page break without triggering MD033 inline HTML warnings.
 - **Synchronized Scrolling (Scroll Sync)**: Accurate two-way scrolling synchronization between the Markdown editor and preview panel, with bidirectional toggle controls, configurable animation modes (`smooth` vs `instant`), and adjustable sync delay (`0ms` to `100ms`).
 - **Scroll Position Preservation**: Typing and editing maintains your current scroll location in the preview pane without abrupt resets.
-- **Sticky Preview Toolbar**: Keep actions like Export PDF, Refresh, Sync toggle, Scroll Animation (`smooth` / `instant`), Debounce Delay (`0ms` / `20ms` / `50ms` / `100ms`), and Page Zoom (`Fit` / `50%` - `150%`) immediately accessible at the top while scrolling.
+- **Sticky Preview Toolbar**: Keep actions like Export PDF, View Mode switcher (`Paged` / `Continuous`), Refresh, Sync toggle, Scroll Animation (`smooth` / `instant`), Debounce Delay (`0ms` / `20ms` / `50ms` / `100ms`), and Page Zoom (`Fit` / `50%` - `150%`) immediately accessible at the top while scrolling.
 - **Fast In-Memory Diagram Cache**: Sub-10ms warm re-rendering for documents with complex Mermaid and PlantUML diagrams.
 - **Direct PDF Export**: Convert Markdown files to PDF with a single command.
 - **Save As Dialog**: Choose a customized output directory and filename interactively.
@@ -152,6 +155,7 @@ Server --> User: Response
 
 Configure extension settings via VS Code Settings (`Preferences: Open User Settings (JSON)` or GUI):
 
+- `md-tech-pdf.preview.defaultViewMode`: Default preview display mode: `"paged"` (page-split print preview) or `"continuous"` (seamless scroll preview) (default: `"paged"`).
 - `md-tech-pdf.preview.refresh`: Controls when an open preview is refreshed (`"manual"`, `"onSave"`, or `"onType"`, default: `"onSave"`).
 - `md-tech-pdf.preview.debounceDelay`: Debounce delay in milliseconds before refreshing the preview on typing edits when `preview.refresh` is `"onType"` (minimum: `100`, default: `500`).
 - `md-tech-pdf.preview.scrollSync.enabled`: Default scroll synchronization state (`true` or `false`, default: `true`).

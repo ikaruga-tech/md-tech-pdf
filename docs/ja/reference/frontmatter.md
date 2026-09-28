@@ -45,3 +45,19 @@ style:
 2. ドキュメント先頭の Front Matter 記述
 3. VS Code Settings（`md-tech-pdf.default.*`）
 4. システム組み込み既定値
+
+## 改ページ指定（MarkdownLint準拠）
+
+HTML タグ（`<div style="break-before: page;"></div>`）は `markdownlint` の `MD033`（no-inline-html）ルールで警告対象となる場合があります。
+
+`md-tech-pdf` では、MarkdownLint に抵触しない推奨構文として、独立した行に **8個連続のハッシュ記号**（`########`）を記述することで明示的な改ページを挿入できます:
+
+```markdown
+1ページ目のコンテンツ
+
+########
+
+2ページ目のコンテンツ
+```
+
+Core パッケージのパーサーが `########` を検出し、自動的に印刷用改ページ要素へ変換します。これにより、PDF 出力時および VS Code プレビュー（ページ分割モード）の双方で改ページが反映されます。

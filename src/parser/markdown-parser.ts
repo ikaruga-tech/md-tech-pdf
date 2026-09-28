@@ -108,3 +108,41 @@ export function parseMarkdown(source: string): ParsedMarkdown {
     diagrams,
   };
 }
+
+/**
+ * Replaces standalone '########' page break markers with a page-break div,
+ * ignoring lines inside fenced code blocks.
+ */
+export function replacePageBreakMarkers(markdown: string): string {
+  const lines = markdown.split(/\r?\n/);
+  let inFence = false;
+  let fenceChar = '';
+  let fenceLength = 0;
+
+  const transformedLines = lines.map((line) => {
+    const trimmed = line.trim();
+    // Check for code fence start/end (``` or ~~~)
+    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const matchFenceChar = fenceMatch[1][0];
+      const matchFenceLength = fenceMatch[1].length;
+      if (!inFence) {
+        inFence = true;
+        fenceChar = matchFenceChar;
+        fenceLength = matchFenceLength;
+        return line;
+      } else if (matchFenceChar === fenceChar && matchFenceLength >= fenceLength) {
+        inFence = false;
+        return line;
+      }
+    }
+
+    if (!inFence && trimmed === '########') {
+      return '<div class="page-break" style="break-before: page; page-break-before: always;"></div>';
+    }
+
+    return line;
+  });
+
+  return transformedLines.join('\n');
+}

@@ -5,6 +5,7 @@ import { resolveDiagramOptions } from '../config/config-resolver.js';
 import type { DocumentOptions } from '../config/document-options.js';
 import { parseFrontMatter } from '../config/frontmatter-parser.js';
 import { parseRawAttributes } from '../parser/attributes-parser.js';
+import { replacePageBreakMarkers } from '../parser/markdown-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
@@ -111,10 +112,12 @@ export class HtmlRenderer {
   async render(markdown: string, options?: HtmlRenderOptions): Promise<string> {
     // 1. Extract Front Matter and separate body content
     const {
-      content: markdownBody,
+      content: rawMarkdownBody,
       options: parsedDocOptions,
       lineOffset = 0,
     } = parseFrontMatter(markdown);
+
+    const markdownBody = replacePageBreakMarkers(rawMarkdownBody);
 
     // Merge document options:
     // priority: options.documentOptions > parsedDocOptions (Front Matter) > options.defaultOptions (App/VS Code settings)

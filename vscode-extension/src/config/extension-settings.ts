@@ -38,6 +38,7 @@ export function getExtensionSettings(): ExtensionSettings {
         delay: config.get<number>('preview.scrollSync.delay'),
       },
       zoom: config.get<string>('preview.zoom'),
+      defaultViewMode: config.get<string>('preview.defaultViewMode'),
     },
     styles: config.get<unknown>('styles'),
     default: {

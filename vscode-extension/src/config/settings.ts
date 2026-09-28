@@ -4,6 +4,7 @@ export type AfterExportAction = 'none' | 'open' | 'reveal';
 export type PreviewRefreshMode = 'manual' | 'onSave' | 'onType';
 export type ScrollSyncBehavior = 'smooth' | 'instant';
 export type PreviewZoomLevel = 'fit' | '50%' | '75%' | '100%' | '125%' | '150%';
+export type PreviewViewMode = 'paged' | 'continuous';
 
 export interface DefaultPdfMarginSettings {
   top: string;
@@ -69,6 +70,7 @@ export interface ExtensionSettings {
       delay: number;
     };
     zoom: PreviewZoomLevel;
+    defaultViewMode: PreviewViewMode;
   };
   styles: string[];
   default: DefaultDocumentSettings;
@@ -95,6 +97,7 @@ export interface RawExtensionSettings {
       delay?: number;
     };
     zoom?: string;
+    defaultViewMode?: string;
   };
   styles?: unknown;
   default?: {
@@ -178,6 +181,9 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
       ? (rawZoom as PreviewZoomLevel)
       : 'fit';
 
+  const rawViewMode = raw?.preview?.defaultViewMode;
+  const defaultViewMode: PreviewViewMode = rawViewMode === 'continuous' ? 'continuous' : 'paged';
+
   let styles: string[] = [];
   if (Array.isArray(raw?.styles)) {
     styles = raw.styles
@@ -245,6 +251,7 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
         delay: syncDelay,
       },
       zoom,
+      defaultViewMode,
     },
     styles,
     default: {

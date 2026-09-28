@@ -71,6 +71,16 @@ describe('preview-style', () => {
       assert.match(css, /min-height:\s*210mm;/);
       assert.match(css, /padding:\s*10mm 15mm 10mm 15mm;/);
     });
+
+    it('should generate paged view mode rules and continuous view mode rules', () => {
+      const css = buildPageDimensionStyle();
+      assert.match(css, /\.view-mode-paged\s+\.md-tech-pdf-preview-canvas/);
+      assert.match(css, /\.view-mode-paged\s+\.md-tech-pdf-preview-page/);
+      assert.match(css, /\.view-mode-paged\s+\.page-number-badge/);
+      assert.match(css, /\.view-mode-continuous\s+\.md-tech-pdf-preview-canvas/);
+      assert.match(css, /\.view-mode-continuous\s+\.md-tech-pdf-preview-page/);
+      assert.match(css, /\.view-mode-continuous\s+\.page-break-divider/);
+    });
   });
 
   describe('getPreviewToolbarHtml', () => {
@@ -83,11 +93,13 @@ describe('preview-style', () => {
       assert.match(html, /id="select-toolbar-sync-anim"/);
       assert.match(html, /id="select-toolbar-sync-delay"/);
       assert.match(html, /id="select-toolbar-zoom"/);
+      assert.match(html, /id="select-toolbar-view-mode"/);
       assert.match(html, /id="btn-toolbar-export"/);
       assert.match(html, /data-default-sync-enabled="true"/);
       assert.match(html, /data-default-sync-anim="smooth"/);
       assert.match(html, /data-default-sync-delay="50"/);
       assert.match(html, /data-default-zoom="fit"/);
+      assert.match(html, /data-default-view-mode="paged"/);
     });
 
     it('should reflect custom initial settings in HTML attributes and selection', () => {
@@ -96,14 +108,17 @@ describe('preview-style', () => {
         syncBehavior: 'instant',
         syncDelay: 20,
         zoom: '75%',
+        viewMode: 'continuous',
       });
       assert.match(html, /data-default-sync-enabled="false"/);
       assert.match(html, /data-default-sync-anim="instant"/);
       assert.match(html, /data-default-sync-delay="20"/);
       assert.match(html, /data-default-zoom="75%"/);
+      assert.match(html, /data-default-view-mode="continuous"/);
       assert.match(html, /<option value="instant" selected>Instant<\/option>/);
       assert.match(html, /<option value="20" selected>20ms<\/option>/);
       assert.match(html, /<option value="75%" selected>75%<\/option>/);
+      assert.match(html, /<option value="continuous" selected>Continuous<\/option>/);
       assert.match(html, /Sync: OFF/);
     });
   });

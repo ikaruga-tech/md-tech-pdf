@@ -398,6 +398,7 @@ export class PreviewPanel implements vscode.Disposable {
         syncBehavior: extSettings.preview.scrollSync?.behavior,
         syncDelay: extSettings.preview.scrollSync?.delay,
         zoom: extSettings.preview.zoom,
+        viewMode: extSettings.preview.defaultViewMode,
       });
 
       let finalHtml = html;

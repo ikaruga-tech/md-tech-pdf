@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { extractDiagramBlocks, parseMarkdown, DiagramParseError } from '../src/index.js';
+import {
+  extractDiagramBlocks,
+  parseMarkdown,
+  DiagramParseError,
+  replacePageBreakMarkers,
+} from '../src/index.js';
 
 describe('Markdown Parser & Diagram Extractor', () => {
   // 1. Mermaidブロックを解析できる
@@ -328,5 +333,41 @@ graph TD
   A --> B
 \`\`\``;
     expect(() => extractDiagramBlocks(md)).toThrowError(DiagramParseError);
+  });
+
+  describe('replacePageBreakMarkers (######## page break syntax)', () => {
+    it('should replace standalone ######## with page break div', () => {
+      const input = `# Chapter 1\n\nContent 1\n\n########\n\n# Chapter 2\n\nContent 2`;
+      const output = replacePageBreakMarkers(input);
+      expect(output).toContain(
+        '<div class="page-break" style="break-before: page; page-break-before: always;"></div>'
+      );
+      expect(output).not.toContain('########');
+    });
+
+    it('should ignore ######## inside fenced code blocks', () => {
+      const input = `# Code Sample\n\n\`\`\`markdown\n########\n\`\`\`\n\n########\n\nAfter break`;
+      const output = replacePageBreakMarkers(input);
+      // Code block should keep ########
+      expect(output).toContain('```markdown\n########\n```');
+      // Outside ######## should be replaced
+      expect(output).toContain(
+        '<div class="page-break" style="break-before: page; page-break-before: always;"></div>\n\nAfter break'
+      );
+    });
+
+    it('should handle ######## without surrounding empty lines', () => {
+      const input = `Line before\n########\nLine after`;
+      const output = replacePageBreakMarkers(input);
+      expect(output).toBe(
+        `Line before\n<div class="page-break" style="break-before: page; page-break-before: always;"></div>\nLine after`
+      );
+    });
+
+    it('should not replace lines that have more or fewer # characters', () => {
+      const input = `#######\n#########\n# heading\n###### h6`;
+      const output = replacePageBreakMarkers(input);
+      expect(output).toBe(input);
+    });
   });
 });

@@ -12,6 +12,7 @@ interface WebviewState {
   syncAnim?: 'smooth' | 'instant';
   syncDelay?: number;
   zoomLevel?: string;
+  viewMode?: 'paged' | 'continuous';
 }
 
 interface VsCodeApi {
@@ -41,6 +42,8 @@ declare function acquireVsCodeApi(): VsCodeApi;
     (toolbarEl?.getAttribute('data-default-sync-anim') as 'smooth' | 'instant') || 'smooth';
   const defaultSyncDelay = parseInt(toolbarEl?.getAttribute('data-default-sync-delay') || '50', 10);
   const defaultZoom = toolbarEl?.getAttribute('data-default-zoom') || 'fit';
+  const defaultViewMode =
+    (toolbarEl?.getAttribute('data-default-view-mode') as 'paged' | 'continuous') || 'paged';
 
   // Restore previous state if available, otherwise apply settings defaults
   const initialState = vscode.getState();
@@ -55,6 +58,10 @@ declare function acquireVsCodeApi(): VsCodeApi;
       ? initialState.syncDelay
       : defaultSyncDelay;
   let currentZoom: string = initialState?.zoomLevel || defaultZoom;
+  let currentViewMode: 'paged' | 'continuous' =
+    initialState?.viewMode === 'continuous' || initialState?.viewMode === 'paged'
+      ? initialState.viewMode
+      : defaultViewMode;
 
   if (initialState && typeof initialState.scrollY === 'number') {
     window.scrollTo({ top: initialState.scrollY, behavior: 'instant' });
@@ -93,6 +100,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
       syncAnim: scrollSyncAnim,
       syncDelay: scrollSyncDelay,
       zoomLevel: currentZoom,
+      viewMode: currentViewMode,
       ...overrides,
     };
     vscode?.setState(nextState);
@@ -424,13 +432,120 @@ declare function acquireVsCodeApi(): VsCodeApi;
       });
     }
 
+    const viewModeSelect = document.getElementById(
+      'select-toolbar-view-mode'
+    ) as HTMLSelectElement | null;
+    if (viewModeSelect) {
+      viewModeSelect.value = currentViewMode;
+      viewModeSelect.addEventListener('change', () => {
+        const nextMode = viewModeSelect.value === 'continuous' ? 'continuous' : 'paged';
+        applyViewMode(nextMode);
+      });
+    }
+
     // Initial notification of scroll sync config to extension host
     notifyScrollSyncConfig();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupToolbarInteractions);
-  } else {
+  // Check if an element represents a page break
+  function isPageBreakElement(node: Node): boolean {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return false;
+    }
+    const el = node as HTMLElement;
+    if (el.classList.contains('page-break')) {
+      return true;
+    }
+    const style = el.getAttribute('style') || '';
+    return /break-before\s*:\s*page/i.test(style) || /page-break-before\s*:\s*always/i.test(style);
+  }
+
+  // Splits document contents into physical page containers if page break markers exist
+  function setupDocumentPages() {
+    const canvas = document.querySelector<HTMLElement>('.md-tech-pdf-preview-canvas');
+    if (!canvas || canvas.dataset.pagesSplit === 'true') {
+      return;
+    }
+
+    const firstPage = canvas.querySelector<HTMLElement>('.md-tech-pdf-preview-page');
+    if (!firstPage) {
+      return;
+    }
+
+    const childNodes = Array.from(firstPage.childNodes);
+    const pageGroups: Node[][] = [[]];
+
+    for (const node of childNodes) {
+      if (isPageBreakElement(node)) {
+        pageGroups.push([]);
+      } else {
+        pageGroups[pageGroups.length - 1].push(node);
+      }
+    }
+
+    if (pageGroups.length > 1) {
+      firstPage.innerHTML = '';
+      canvas.innerHTML = '';
+
+      pageGroups.forEach((groupNodes, index) => {
+        if (index > 0) {
+          const divider = document.createElement('div');
+          divider.className = 'page-break-divider';
+          canvas.appendChild(divider);
+        }
+
+        const pageEl = document.createElement('main');
+        pageEl.className = 'md-tech-pdf-preview-page';
+        pageEl.dataset.pageIndex = String(index + 1);
+
+        groupNodes.forEach((n) => pageEl.appendChild(n));
+
+        const badge = document.createElement('div');
+        badge.className = 'page-number-badge';
+        badge.textContent = `Page ${index + 1}`;
+        pageEl.appendChild(badge);
+
+        canvas.appendChild(pageEl);
+      });
+
+      canvas.dataset.pagesSplit = 'true';
+    } else {
+      if (!firstPage.querySelector('.page-number-badge')) {
+        const badge = document.createElement('div');
+        badge.className = 'page-number-badge';
+        badge.textContent = 'Page 1';
+        firstPage.appendChild(badge);
+      }
+      canvas.dataset.pagesSplit = 'true';
+    }
+  }
+
+  // Applies active view mode (paged vs continuous)
+  function applyViewMode(mode: 'paged' | 'continuous') {
+    currentViewMode = mode;
+    document.body.classList.remove('view-mode-paged', 'view-mode-continuous');
+    document.body.classList.add(`view-mode-${mode}`);
+
+    const viewSelect = document.getElementById(
+      'select-toolbar-view-mode'
+    ) as HTMLSelectElement | null;
+    if (viewSelect && viewSelect.value !== mode) {
+      viewSelect.value = mode;
+    }
+
+    applyZoom(currentZoom);
+    saveCurrentState({ viewMode: mode });
+  }
+
+  function initView() {
+    setupDocumentPages();
+    applyViewMode(currentViewMode);
     setupToolbarInteractions();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initView);
+  } else {
+    initView();
   }
 })();

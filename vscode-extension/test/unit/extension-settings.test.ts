@@ -16,6 +16,24 @@ describe('extension-settings', () => {
       assert.strictEqual(settings.preview.scrollSync.behavior, 'smooth');
       assert.strictEqual(settings.preview.scrollSync.delay, 50);
       assert.strictEqual(settings.preview.zoom, 'fit');
+      assert.strictEqual(settings.preview.defaultViewMode, 'paged');
+    });
+
+    it('should parse preview.defaultViewMode setting with fallback to paged', () => {
+      const pagedSetting = parseExtensionSettings({
+        preview: { defaultViewMode: 'paged' },
+      });
+      assert.strictEqual(pagedSetting.preview.defaultViewMode, 'paged');
+
+      const continuousSetting = parseExtensionSettings({
+        preview: { defaultViewMode: 'continuous' },
+      });
+      assert.strictEqual(continuousSetting.preview.defaultViewMode, 'continuous');
+
+      const invalidSetting = parseExtensionSettings({
+        preview: { defaultViewMode: 'invalid' as unknown as string },
+      });
+      assert.strictEqual(invalidSetting.preview.defaultViewMode, 'paged');
     });
 
     it('should parse preview.debounceDelay setting with bounds and fallback', () => {

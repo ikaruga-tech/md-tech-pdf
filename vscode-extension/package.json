@@ -170,6 +170,15 @@
           "default": "fit",
           "description": "Initial zoom magnification level for the preview display."
         },
+        "md-tech-pdf.preview.defaultViewMode": {
+          "type": "string",
+          "enum": [
+            "paged",
+            "continuous"
+          ],
+          "default": "paged",
+          "description": "Initial view mode for document preview: 'paged' (page-by-page sheet view) or 'continuous' (seamless scrolling web view)."
+        },
         "md-tech-pdf.styles": {
           "type": "array",
           "items": {

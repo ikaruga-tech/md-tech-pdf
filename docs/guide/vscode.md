@@ -4,10 +4,13 @@ The `md-tech-pdf` extension provides a side-by-side preview panel and one-click 
 
 ## Features
 
-- **Side-by-Side PDF-like Preview**: Realistic page preview mirroring the output PDF page layout and margins.
+- **Dual Preview Modes (Paged & Continuous)**:
+  - **Paged View**: Realistic page preview mirroring the output PDF page layout, margins, and physical paper boundaries. Respects Front Matter `pdf` dimensions or VS Code default settings.
+  - **Continuous View**: Seamless, full-width continuous scroll mode similar to standard Markdown previews. Shows page break indicators without physical page gaps.
 - **Bi-directional Scroll Sync**: Scrolling the editor jumps to the preview position, and scrolling the preview moves the active editor line.
 - **Interactive Sticky Toolbar**:
   - `Reload`: Re-renders preview while bypassing diagram caches.
+  - `View: Paged / Continuous`: Switch between physical paged view and continuous scroll view.
   - `Sync: ON / OFF`: Toggle synchronized scrolling.
   - `Anim: smooth / instant`: Toggle smooth animation or instantaneous jumping.
   - `Delay: 0ms / 20ms / 50ms / 100ms`: Adjust debounce interval for scroll synchronization.
