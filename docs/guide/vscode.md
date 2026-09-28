@@ -16,6 +16,12 @@ The `md-tech-pdf` extension provides a side-by-side preview panel and one-click 
   - `Delay: 0ms / 20ms / 50ms / 100ms`: Adjust debounce interval for scroll synchronization.
   - `Zoom`: Switch page magnification (`Fit Width`, `50%`, `75%`, `100%`, `125%`, `150%`).
   - `Export PDF`: Instant PDF export button.
+- **Client-Side Auto-Pagination**:
+  - Automatically calculates effective page height based on target paper size and margins in Paged View mode, splitting long continuous content across multiple page sheets.
+  - Built-in Orphan Heading Prevention ensures section headings are not left isolated at the bottom of a page without subsequent text.
+- **Table Overflow Defense & Responsive Layout**:
+  - Wide tables are automatically enclosed in a `.table-container` wrapper with horizontal scrolling to prevent layout clipping.
+  - Allows natural line wrapping for table header cells (`th`) and inline code, with balanced 0.88em font sizing.
 - **Persistent Diagram Cache**: SVG diagram renders are cached to disk, enabling instant preview reload across VS Code sessions.
 
 ## Commands
