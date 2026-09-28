@@ -19,7 +19,7 @@ describe('Typography & Pattern D styles (Phase 7.5-D)', () => {
     expect(DEFAULT_DOCUMENT_STYLE).toMatch(/strong,\s*b\s*{[^}]*font-weight:\s*700/);
 
     // Table Header
-    expect(DEFAULT_DOCUMENT_STYLE).toMatch(/table\s+th\s*{[^}]*font-weight:\s*400/);
+    expect(DEFAULT_DOCUMENT_STYLE).toMatch(/table\s+th\s*{[^}]*font-weight:\s*600/);
     expect(DEFAULT_DOCUMENT_STYLE).toMatch(/table\s+th\s*{[^}]*background-color:\s*#f0f3f6/);
     expect(DEFAULT_DOCUMENT_STYLE).toMatch(/table\s+th\s*{[^}]*border-bottom:\s*2px solid #cbd5e1/);
 

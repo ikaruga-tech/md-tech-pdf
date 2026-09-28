@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-28
+
+### Added
+
+- MarkdownLint compliant page break notation `########`:
+  - Eight consecutive hashes on a standalone line (`########`) are automatically converted into a page break element (`<div class="page-break"></div>`).
+  - Avoids markdownlint raw HTML warnings (MD033) when authoring documents with intentional page breaks.
+- Dual Preview View Modes (Paged and Continuous):
+  - Added interactive toolbar toggle button (`View: Paged / Continuous`) to seamlessly switch viewing experiences.
+  - Added VS Code setting `md-tech-pdf.preview.defaultViewMode` (default: `"paged"`) to configure user preference.
+  - Paged mode partitions document contents into distinct paper sheets matching target PDF dimensions with realistic drop shadows.
+  - Continuous mode displays an unbroken document sheet with subtle dashed page break indicators.
+- Client-side Auto Pagination in Paged View Mode:
+  - Automatically calculates page height budgets from paper size and margins, splitting long continuous content across multiple page sheets.
+  - Heading orphan prevention: automatically pushes trailing headings to the next sheet if they cannot fit alongside content.
+- Robust Table Layout and Overflow Protection:
+  - Wrapped rendered markdown tables in `.table-container` with horizontal scroll capability to prevent wide tables from breaking out of sheet boundaries.
+  - Allowed natural line wrapping for table header cells (`th`) and inline code elements.
+  - Refined table typography (0.88em font size, 4px 6px cell padding) optimized for print aesthetics and information density.
+
 ## [0.5.0] - 2026-09-27
 
 ### Added
