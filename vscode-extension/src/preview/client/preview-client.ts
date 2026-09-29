@@ -640,6 +640,17 @@ declare function acquireVsCodeApi(): VsCodeApi;
     saveCurrentState({ viewMode: mode });
   }
 
+  // Forward one-click resolution actions from diagram error cards to the extension host
+  document.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const actionEl = target?.closest<HTMLElement>('[data-md-action]');
+    const action = actionEl?.getAttribute('data-md-action');
+    if (action === 'runDoctor' || action === 'downloadPlantUml' || action === 'openSettings') {
+      event.preventDefault();
+      vscode?.postMessage({ type: action });
+    }
+  });
+
   function initView() {
     setupDocumentPages();
     applyViewMode(currentViewMode);

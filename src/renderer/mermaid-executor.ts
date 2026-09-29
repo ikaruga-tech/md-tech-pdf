@@ -1,12 +1,70 @@
 import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import { DiagramRenderError } from './error.js';
 
 export interface MermaidExecutionOptions {
   theme?: string;
   backgroundColor?: string;
+  /**
+   * Absolute path to a Chromium-based browser (e.g. system Chrome / Edge).
+   * When omitted, Puppeteer's bundled chrome-headless-shell is used.
+   */
+  browserExecutablePath?: string;
+}
+
+const BROWSER_LAUNCH_FAILURE_PATTERN =
+  /Could not find (Chrome|chrome-headless-shell)|Browser was not found|Failed to launch the browser process/i;
+
+/**
+ * Detects Mermaid CLI failures caused by a missing or unlaunchable browser.
+ */
+export function isBrowserLaunchFailure(stderr: string): boolean {
+  return BROWSER_LAUNCH_FAILURE_PATTERN.test(stderr);
+}
+
+/**
+ * Writes (once per browser path) a Puppeteer config file for Mermaid CLI's `-p` option.
+ * System browsers require the new headless mode instead of mmdc's default `headless: "shell"`.
+ */
+export function ensurePuppeteerConfigFile(browserExecutablePath: string): string {
+  const hash = crypto.createHash('sha1').update(browserExecutablePath).digest('hex').slice(0, 16);
+  const configPath = path.join(os.tmpdir(), `md-tech-pdf-puppeteer-${hash}.json`);
+  if (!fs.existsSync(configPath)) {
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ executablePath: browserExecutablePath, headless: true }),
+      'utf-8'
+    );
+  }
+  return configPath;
+}
+
+/**
+ * Builds the Mermaid CLI argument list for in-memory stdin/stdout SVG rendering.
+ */
+export function buildMermaidCliArgs(
+  argsPrefix: string[],
+  options?: MermaidExecutionOptions
+): string[] {
+  const args: string[] = [...argsPrefix, '-i', '-', '-o', '-', '-e', 'svg', '-q'];
+
+  if (options?.theme) {
+    args.push('-t', options.theme);
+  }
+
+  if (options?.backgroundColor) {
+    args.push('-b', options.backgroundColor);
+  }
+
+  if (options?.browserExecutablePath) {
+    args.push('-p', ensurePuppeteerConfigFile(options.browserExecutablePath));
+  }
+
+  return args;
 }
 
 /**
@@ -54,15 +112,7 @@ export async function executeMermaidCli(
 ): Promise<string> {
   const { command, argsPrefix } = resolveMmdcPath();
 
-  const args: string[] = [...argsPrefix, '-i', '-', '-o', '-', '-e', 'svg', '-q'];
-
-  if (options?.theme) {
-    args.push('-t', options.theme);
-  }
-
-  if (options?.backgroundColor) {
-    args.push('-b', options.backgroundColor);
-  }
+  const args = buildMermaidCliArgs(argsPrefix, options);
 
   return new Promise<string>((resolve, reject) => {
     let stdoutBuffer = '';
@@ -111,6 +161,7 @@ export async function executeMermaidCli(
         reject(
           new DiagramRenderError(`Failed to render Mermaid diagram: ${errorMsg}`, {
             cause: new Error(errorMsg),
+            code: isBrowserLaunchFailure(errorMsg) ? 'BROWSER_NOT_FOUND' : 'RENDER_FAILED',
           })
         );
       }

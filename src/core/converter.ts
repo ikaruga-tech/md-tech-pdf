@@ -30,6 +30,13 @@ export interface ConvertAppConfig {
   style?: StyleDocumentOptions & {
     styles?: string[];
   };
+  /**
+   * Browser used by both Mermaid rendering and PDF generation,
+   * guaranteeing identical rendering between preview and PDF output.
+   */
+  browser?: {
+    executablePath?: string;
+  };
 }
 
 export interface ConvertOptions {
@@ -142,8 +149,10 @@ export async function convertMarkdownToPdf(
     message: 'Generating HTML...',
   });
 
+  const browserExecutablePath = options.config?.browser?.executablePath;
   const htmlRenderer = new HtmlRenderer({
     diagramCache: options.diagramCache,
+    browserExecutablePath,
   });
   let html: string;
   const styleConfig = options.config?.style;
@@ -193,7 +202,10 @@ export async function convertMarkdownToPdf(
           }
         : undefined,
   };
-  const pdfOptions = resolvePdfOptions(effectivePdfOptions);
+  const pdfOptions = {
+    ...resolvePdfOptions(effectivePdfOptions),
+    browserExecutablePath,
+  };
 
   try {
     await pdfGenerator.generate(html, outputPath, pdfOptions);

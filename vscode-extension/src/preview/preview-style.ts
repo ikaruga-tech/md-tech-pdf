@@ -207,6 +207,54 @@ body {
   overflow-wrap: anywhere !important;
 }
 
+/* Localized diagram error card with one-click actions */
+.md-tech-diagram-error-guidance {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #24292f;
+}
+
+.md-tech-diagram-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.md-tech-diagram-error-action {
+  padding: 4px 12px;
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, transparent);
+}
+
+.md-tech-diagram-error-action:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.md-tech-diagram-error-details {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #57606a;
+}
+
+.md-tech-diagram-error-details summary {
+  cursor: pointer;
+}
+
+.md-tech-diagram-error-details pre.md-tech-diagram-error-message {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem;
+  background: #f6f8fa;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow: auto;
+}
+
 @media print {
   .preview-toolbar {
     display: none !important;

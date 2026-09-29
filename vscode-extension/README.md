@@ -147,9 +147,15 @@ Server --> User: Response
 
 ## Requirements
 
-- **Mermaid**: Bundled within the extension. No extra runtime or installation is required.
-- **PlantUML**: Requires a local Java runtime (Java 8+) and a PlantUML JAR file. Specify their paths in Settings if they are not in your default system PATH.
-- **Network**: Required only when downloading external Google Fonts during export.
+- **Browser (Mermaid & PDF)**: An installed Google Chrome, Microsoft Edge, Brave, or Chromium is detected automatically and used for both Mermaid rendering and PDF export, so preview and PDF look identical. Set `md-tech-pdf.browser.executablePath` to use a specific browser.
+- **PlantUML**: Requires a local Java runtime (Java 8+) and a PlantUML JAR file. Run `md-tech-pdf: Download PlantUML Jar` to download the jar automatically, or specify the paths in Settings.
+- **Network**: Required only when downloading external Google Fonts during export, or when downloading the PlantUML jar.
+
+## Environment Setup & Troubleshooting
+
+- **`md-tech-pdf: Run Doctor (環境診断)`**: Checks the browser, Java runtime, PlantUML jar, Mermaid CLI, and PDF export engine, then writes a report to the `md-tech-pdf: Doctor` output channel. When everything is fine it prints `All systems are ready!`; otherwise it shows the cause and how to fix it.
+- **`md-tech-pdf: Download PlantUML Jar`**: Downloads the latest `plantuml.jar` from the official GitHub releases into the extension storage (`globalStorage/bin/plantuml.jar`), with a cancellable progress notification. The jar is used automatically while `md-tech-pdf.plantuml.jarPath` is empty, and open previews are refreshed after the download.
+- **Error cards**: When a diagram cannot be rendered because of a missing environment, the preview shows a friendly message (Japanese or English, following the VS Code display language) with one-click buttons: **Run Doctor**, **Download PlantUML Jar**, and **Open Settings**. The raw error is available under **Error details**.
 
 ## Configuration
 
@@ -164,8 +170,9 @@ Configure extension settings via VS Code Settings (`Preferences: Open User Setti
 - `md-tech-pdf.preview.zoom`: Default preview zoom scale (`"fit"`, `"50%"`, `"75%"`, `"100%"`, `"125%"`, or `"150%"`, default: `"fit"`).
 - `md-tech-pdf.preview.cache.persistent`: Enable persistent disk caching for rendered Mermaid and PlantUML diagrams across VS Code sessions (default: `true`).
 - `md-tech-pdf.styles`: List of custom CSS file paths (relative to workspace or document) to apply to preview and PDF export (default: `[]`).
+- `md-tech-pdf.browser.executablePath`: Absolute path to a Chromium-based browser used for Mermaid rendering and PDF export. Leave empty to auto-detect Chrome / Edge / Brave / Chromium (default: `""`).
 - `md-tech-pdf.plantuml.javaPath`: Path to the Java executable (default: `"java"`).
-- `md-tech-pdf.plantuml.jarPath`: Path to the local `plantuml.jar` file (default: `""`).
+- `md-tech-pdf.plantuml.jarPath`: Path to the local `plantuml.jar` file. When empty, the jar downloaded by `md-tech-pdf: Download PlantUML Jar` is used (default: `""`).
 - `md-tech-pdf.export.outputDirectory`: Default output directory for exports. Leave empty to output next to the source Markdown file (default: `""`).
 - `md-tech-pdf.export.afterExport`: Action to perform automatically after export: `"none"`, `"open"` (open in editor), or `"reveal"` (reveal in OS file manager) (default: `"none"`).
 - `md-tech-pdf.default.pdf.format`: Default PDF paper format when unspecified in Front Matter (default: `"A4"`).
@@ -185,7 +192,7 @@ Configure extension settings via VS Code Settings (`Preferences: Open User Setti
 ## Known Limitations
 
 - Very large diagrams may push following content to a new page or leave white space if they exceed page dimensions.
-- PlantUML requires Java and a valid `plantuml.jar` installed on your machine.
+- PlantUML requires Java on your machine (the jar can be downloaded with `md-tech-pdf: Download PlantUML Jar`).
 - Google Fonts fetching requires an active internet connection during rendering.
 
 ## License

@@ -77,7 +77,8 @@ export class PreviewManager implements vscode.Disposable {
   constructor(
     panelFactory?: PreviewPanelFactory,
     private readonly extensionUri?: vscode.Uri,
-    diagramCache?: IDiagramRenderCache
+    diagramCache?: IDiagramRenderCache,
+    private readonly globalStorageDir?: string
   ) {
     this.diagramCache = diagramCache ?? new PersistentDiagramCache();
     this.panelFactory =
@@ -95,6 +96,7 @@ export class PreviewManager implements vscode.Disposable {
           settings: extSettings,
           diagramCache: this.diagramCache,
           extensionUri: this.extensionUri,
+          globalStorageDir: this.globalStorageDir,
         });
       });
 
@@ -316,6 +318,21 @@ export class PreviewManager implements vscode.Disposable {
     });
 
     return panel;
+  }
+
+  /**
+   * Re-renders every open preview (e.g. after the environment changed, such as a jar download).
+   */
+  public async refreshAll(): Promise<void> {
+    const settings = getExtensionSettings();
+    await Promise.all(
+      [...this.panels.values()].map((panel) =>
+        panel.refresh({
+          settings,
+          diagramCache: this.diagramCache,
+        })
+      )
+    );
   }
 
   /**

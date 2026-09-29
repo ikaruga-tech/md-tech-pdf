@@ -10,6 +10,11 @@ export interface PdfOptions {
   landscape?: boolean;
   margin?: PdfMargin;
   printBackground?: boolean;
+  /**
+   * Absolute path to a Chromium-based browser (e.g. system Chrome / Edge).
+   * When omitted, Playwright's bundled Chromium is used.
+   */
+  browserExecutablePath?: string;
 }
 
 export interface PdfGeneratorInterface {

@@ -5,6 +5,22 @@ All notable changes to the "md-tech-pdf" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-09-29
+
+### Added
+
+- System browser auto-detection: installed Google Chrome, Microsoft Edge, Brave, or Chromium is detected per OS (macOS / Windows / Linux) and shared by preview and PDF export, so Mermaid renders even without the bundled chrome-headless-shell.
+- `md-tech-pdf.browser.executablePath` setting (default: `""` = auto-detect).
+- `md-tech-pdf: Download PlantUML Jar` command (`md-tech-pdf.downloadPlantUmlJar`): cancellable download of `plantuml.jar` from the official GitHub releases into `globalStorage/bin/plantuml.jar`. Used automatically while `md-tech-pdf.plantuml.jarPath` is empty; open previews refresh after the download.
+- `md-tech-pdf: Run Doctor (環境診断)` command (`md-tech-pdf.runDoctor`): checks browser, Java runtime, PlantUML jar, Mermaid CLI, and PDF export engine and writes a report to the `md-tech-pdf: Doctor` output channel.
+- Japanese / English UI messages following the VS Code display language.
+
+### Changed
+
+- Diagram error cards in the preview now show friendly, localized guidance with one-click **Run Doctor**, **Download PlantUML Jar**, and **Open Settings** buttons; raw error output moved into a collapsible **Error details** section.
+- The first-render diagram error notification now offers **Open Doctor**, and PDF export failures caused by the environment show localized guidance with action buttons.
+- Requires md-tech-pdf core 0.4.0.
+
 ## [0.6.0] - 2026-09-28
 
 ### Added

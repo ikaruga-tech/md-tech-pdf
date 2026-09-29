@@ -1,9 +1,14 @@
 import * as crypto from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { executeGuidanceAction, RUN_DOCTOR_COMMAND } from '../commands/guidance-actions.js';
 import { type ExtensionSettings, getExtensionSettings } from '../config/extension-settings.js';
+import { isGuidanceAction } from '../environment/error-guidance.js';
+import { resolveRenderEnvironment } from '../environment/render-environment.js';
+import { type Locale, getLocale, t } from '../i18n/index.js';
 import { getErrorMessage } from '../utils/error-utils.js';
 import { buildPreviewCsp } from './csp-builder.js';
+import { buildLocalizedDiagramErrorHtml } from './diagram-error-card.js';
 import {
   buildPageDimensionStyle,
   getPreviewBaseStyle,
@@ -72,6 +77,7 @@ export interface PreviewRenderOptions {
   isBackgroundRefresh?: boolean;
   bypassCache?: boolean;
   extensionUri?: vscode.Uri;
+  globalStorageDir?: string;
 }
 
 export interface ScrollSyncConfigEvent {
@@ -95,6 +101,7 @@ export class PreviewPanel implements vscode.Disposable {
     new vscode.EventEmitter<ScrollSyncConfigEvent>();
   private readonly outputChannel: vscode.OutputChannel;
   private readonly extensionUri?: vscode.Uri;
+  private readonly globalStorageDir?: string;
   private diagramCache?: IDiagramRenderCache;
   private hasWarnedDiagramError = false;
   private renderGeneration = 0;
@@ -110,13 +117,15 @@ export class PreviewPanel implements vscode.Disposable {
     documentUri: vscode.Uri,
     outputChannel?: vscode.OutputChannel,
     extensionUri?: vscode.Uri,
-    diagramCache?: IDiagramRenderCache
+    diagramCache?: IDiagramRenderCache,
+    globalStorageDir?: string
   ) {
     this.panel = panel;
     this.documentUri = documentUri;
     this.outputChannel = outputChannel ?? getPreviewOutputChannel();
     this.extensionUri = extensionUri;
     this.diagramCache = diagramCache;
+    this.globalStorageDir = globalStorageDir;
 
     this.panel.onDidDispose(
       () => {
@@ -153,6 +162,8 @@ export class PreviewPanel implements vscode.Disposable {
           void this.render({ bypassCache: true });
         } else if (msg.type === 'exportPdf') {
           void vscode.commands.executeCommand('md-tech-pdf.exportPdf', this.documentUri);
+        } else if (isGuidanceAction(msg.type)) {
+          void executeGuidanceAction(msg.type);
         }
       },
       null,
@@ -191,7 +202,8 @@ export class PreviewPanel implements vscode.Disposable {
       documentUri,
       undefined,
       options.extensionUri,
-      options.diagramCache
+      options.diagramCache,
+      options.globalStorageDir
     );
     instance.showLoading();
     void instance.render(options);
@@ -254,7 +266,7 @@ export class PreviewPanel implements vscode.Disposable {
   </style>
 </head>
 <body>
-  <div>Rendering preview...</div>
+  <div>${escapeHtml(t('preview.rendering'))}</div>
 </body>
 </html>
 `;
@@ -271,6 +283,7 @@ export class PreviewPanel implements vscode.Disposable {
         : ((settingsOrOptions as PreviewRenderOptions) ?? {});
 
     const extSettings = options.settings ?? getExtensionSettings();
+    const locale = getLocale();
     const isBackgroundRefresh = options.isBackgroundRefresh ?? false;
     const currentGeneration = ++this.renderGeneration;
 
@@ -338,8 +351,11 @@ export class PreviewPanel implements vscode.Disposable {
         return path.resolve(docDir, s);
       });
 
+      const renderEnvironment = resolveRenderEnvironment(extSettings, this.globalStorageDir);
       let diagramErrorCount = 0;
-      const renderer = new HtmlRenderer();
+      const renderer = new HtmlRenderer({
+        browserExecutablePath: renderEnvironment.browserExecutablePath,
+      });
       const html = await renderer.render(markdownContent, {
         title: baseName,
         basePath: docDir,
@@ -351,12 +367,16 @@ export class PreviewPanel implements vscode.Disposable {
         defaultOptions: {
           pdf: extSettings.default.pdf,
           diagram: extSettings.default.diagram,
-          plantuml: extSettings.plantuml,
+          plantuml: {
+            ...extSettings.plantuml,
+            jarPath: renderEnvironment.plantumlJarPath,
+          },
           style: {
             font: extSettings.default.style.font,
             css: resolvedSettingsStyles.length > 0 ? resolvedSettingsStyles : undefined,
           },
         },
+        diagramErrorHtmlBuilder: (event) => buildLocalizedDiagramErrorHtml(event, locale),
         onDiagramError: (event) => {
           diagramErrorCount++;
           const typeName = event.type === 'plantuml' ? 'PlantUML' : 'Mermaid';
@@ -428,9 +448,7 @@ export class PreviewPanel implements vscode.Disposable {
 
       if (!isBackgroundRefresh && diagramErrorCount > 0 && !this.hasWarnedDiagramError) {
         this.hasWarnedDiagramError = true;
-        void vscode.window.showWarningMessage(
-          'md-tech-pdf: Some diagrams could not be rendered. See "md-tech-pdf" Output for details.'
-        );
+        void this.notifyDiagramErrors(locale);
       }
     } catch (error: unknown) {
       if (currentGeneration !== this.renderGeneration) {
@@ -438,6 +456,20 @@ export class PreviewPanel implements vscode.Disposable {
       }
       console.error('[md-tech-pdf] Preview rendering failed', error);
       this.showError(error);
+    }
+  }
+
+  /**
+   * Shows an unobtrusive notification offering to open the environment doctor.
+   */
+  private async notifyDiagramErrors(locale: Locale): Promise<void> {
+    const openDoctor = t('preview.openDoctor', {}, locale);
+    const selected = await vscode.window.showInformationMessage(
+      t('preview.diagramErrorToast', {}, locale),
+      openDoctor
+    );
+    if (selected === openDoctor) {
+      await vscode.commands.executeCommand(RUN_DOCTOR_COMMAND);
     }
   }
 
@@ -488,7 +520,7 @@ export class PreviewPanel implements vscode.Disposable {
 </head>
 <body>
   <div class="error-card">
-    <h2>Preview generation failed</h2>
+    <h2>${escapeHtml(t('preview.failedTitle'))}</h2>
     <p>${escapeHtml(errorMessage)}</p>
   </div>
 </body>

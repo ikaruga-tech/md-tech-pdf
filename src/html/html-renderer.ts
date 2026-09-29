@@ -7,6 +7,7 @@ import { parseFrontMatter } from '../config/frontmatter-parser.js';
 import { parseRawAttributes } from '../parser/attributes-parser.js';
 import { replacePageBreakMarkers } from '../parser/markdown-parser.js';
 import type { DiagramRenderer } from '../renderer/diagram-renderer.js';
+import { DiagramRenderError, type DiagramRenderErrorCode } from '../renderer/error.js';
 import { MermaidRenderer } from '../renderer/mermaid-renderer.js';
 import { PlantUmlRenderer } from '../renderer/plantuml-renderer.js';
 import { type IDiagramRenderCache, computeDiagramCacheKey } from '../renderer/diagram-cache.js';
@@ -36,6 +37,7 @@ export interface DiagramErrorEvent {
   line?: number;
   message: string;
   source: string;
+  code: DiagramRenderErrorCode;
   cause?: unknown;
 }
 
@@ -58,12 +60,21 @@ export interface HtmlRenderOptions {
   onCacheEvent?: (event: DiagramCacheEvent) => void;
   resourceUrlTransformer?: (url: string) => string;
   diagramCache?: IDiagramRenderCache;
+  /**
+   * Replaces the default diagram error card in preview mode (e.g. localized guidance with actions).
+   * The returned markup must start with a single root `<div>` element.
+   */
+  diagramErrorHtmlBuilder?: (event: DiagramErrorEvent) => string;
 }
 
 export interface HtmlRendererConfig {
   mermaidRenderer?: DiagramRenderer;
   plantumlRenderer?: DiagramRenderer;
   diagramCache?: IDiagramRenderCache;
+  /**
+   * Browser used by the default Mermaid renderer (ignored when mermaidRenderer is provided).
+   */
+  browserExecutablePath?: string;
 }
 
 /**
@@ -87,7 +98,10 @@ export class HtmlRenderer {
     } else if (mermaidRendererOrConfig && typeof mermaidRendererOrConfig === 'object') {
       this.renderers.set(
         'mermaid',
-        mermaidRendererOrConfig.mermaidRenderer ?? new MermaidRenderer()
+        mermaidRendererOrConfig.mermaidRenderer ??
+          new MermaidRenderer({
+            browserExecutablePath: mermaidRendererOrConfig.browserExecutablePath,
+          })
       );
       this.renderers.set(
         'plantuml',
@@ -335,9 +349,20 @@ export class HtmlRenderer {
       } catch (err: unknown) {
         if (options?.target === 'preview') {
           const rawMsg = err instanceof Error ? err.message : String(err);
+          const errorEvent: DiagramErrorEvent = {
+            type: item.block.type,
+            index: currentDiagramIndex,
+            line: item.block.line,
+            message: rawMsg,
+            source: item.block.source,
+            code: err instanceof DiagramRenderError ? err.code : 'RENDER_FAILED',
+            cause: err,
+          };
           // Strip verbose/stack details for preview UI
           const userMsg = rawMsg.split('\n')[0].replace(/^Error:\s*/, '');
-          let errorHtml = buildDiagramErrorContainer(item.block.type, userMsg, item.block.options);
+          let errorHtml = options.diagramErrorHtmlBuilder
+            ? options.diagramErrorHtmlBuilder(errorEvent)
+            : buildDiagramErrorContainer(item.block.type, userMsg, item.block.options);
           if (item.block.line) {
             errorHtml = errorHtml.replace(/^<div\b/, `<div data-line="${item.block.line}"`);
           }
@@ -347,16 +372,7 @@ export class HtmlRenderer {
           targetToken.content = errorHtml;
           targetToken.children = null;
 
-          if (options?.onDiagramError) {
-            options.onDiagramError({
-              type: item.block.type,
-              index: currentDiagramIndex,
-              line: item.block.line,
-              message: rawMsg,
-              source: item.block.source,
-              cause: err,
-            });
-          }
+          options.onDiagramError?.(errorEvent);
         } else {
           // For PDF generation, preserve strict behavior: throw error to fail document generation
           throw err;

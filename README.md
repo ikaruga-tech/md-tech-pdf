@@ -29,7 +29,7 @@ In addition to the standalone CLI and core library for automated documentation p
 ## Requirements
 
 - **Node.js**: `>= 22.13.0`
-- **Playwright / Chromium**: Required for PDF rendering (installed automatically with project dependencies).
+- **Playwright / Chromium**: Required for PDF rendering (installed automatically with project dependencies). An installed Google Chrome / Microsoft Edge can be used instead via `config.browser.executablePath` (Library API); the VS Code extension detects one automatically.
 - **Java Runtime & PlantUML JAR**: Required **only** if you render PlantUML diagrams. If you only use Mermaid diagrams, Java is **not** required.
 - **Internet Connection**: Required **only** if downloading Google Fonts at compilation time (automatically falls back to system fonts when offline).
 
@@ -290,6 +290,10 @@ const result = await convertMarkdownToPdf('docs/specification.md', {
     },
     plantuml: {
       javaPath: '/usr/bin/java',
+    },
+    // Optional: reuse an installed browser for both Mermaid rendering and PDF output
+    browser: {
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     },
   },
   onProgress: (event) => {

@@ -38,6 +38,22 @@ describe('Extension Integration Tests', () => {
     );
   });
 
+  it('should register environment commands (Download PlantUML Jar / Run Doctor)', async () => {
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(commands.includes('md-tech-pdf.downloadPlantUmlJar'));
+    assert.ok(commands.includes('md-tech-pdf.runDoctor'));
+  });
+
+  it('should register browser.executablePath with empty default (auto-detect)', () => {
+    const config = vscode.workspace.getConfiguration('md-tech-pdf');
+    assert.strictEqual(config.inspect<string>('browser.executablePath')?.defaultValue, '');
+    assert.strictEqual(getExtensionSettings().browser.executablePath, undefined);
+  });
+
+  it('should run Doctor without throwing', async () => {
+    await vscode.commands.executeCommand('md-tech-pdf.runDoctor');
+  });
+
   it('should register configuration settings with expected default values', () => {
     const config = vscode.workspace.getConfiguration('md-tech-pdf');
 

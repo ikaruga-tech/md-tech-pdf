@@ -10,6 +10,17 @@ export interface ExecutePlantUmlOptions {
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
+const JAVA_UNAVAILABLE_PATTERN =
+  /Unable to locate a Java Runtime|No Java runtime present|Bad CPU type in executable/i;
+
+/**
+ * Detects output from a `java` launcher that exists but cannot run Java
+ * (e.g. the macOS /usr/bin/java stub without a JRE, or a binary for another CPU architecture).
+ */
+export function isJavaUnavailableOutput(stderr: string): boolean {
+  return JAVA_UNAVAILABLE_PATTERN.test(stderr);
+}
+
 /**
  * Executes the PlantUML CLI in pipe mode to render a PlantUML definition into SVG.
  * Does not use temporary files; uses stdin and stdout streams.
@@ -24,13 +35,18 @@ export async function executePlantUml(
   try {
     const jarStat = await fs.stat(jarPath);
     if (!jarStat.isFile()) {
-      throw new DiagramRenderError(`PlantUML jar was not found: ${jarPath}`);
+      throw new DiagramRenderError(`PlantUML jar was not found: ${jarPath}`, {
+        code: 'PLANTUML_JAR_NOT_FOUND',
+      });
     }
   } catch (err) {
     if (err instanceof DiagramRenderError) {
       throw err;
     }
-    throw new DiagramRenderError(`PlantUML jar was not found: ${jarPath}`, { cause: err });
+    throw new DiagramRenderError(`PlantUML jar was not found: ${jarPath}`, {
+      cause: err,
+      code: 'PLANTUML_JAR_NOT_FOUND',
+    });
   }
 
   // 2. Launch Java process with pipe mode
@@ -48,7 +64,7 @@ export async function executePlantUml(
       return reject(
         new DiagramRenderError(
           `Failed to start PlantUML. Java executable was not found: ${javaPath}`,
-          { cause: err }
+          { cause: err, code: 'JAVA_NOT_FOUND' }
         )
       );
     }
@@ -79,7 +95,7 @@ export async function executePlantUml(
         reject(
           new DiagramRenderError(
             `Failed to start PlantUML. Java executable was not found: ${javaPath}`,
-            { cause: err }
+            { cause: err, code: 'JAVA_NOT_FOUND' }
           )
         );
       } else {
@@ -106,6 +122,7 @@ export async function executePlantUml(
               stderr: stderrData,
               stdout: stdoutData,
             },
+            code: isJavaUnavailableOutput(stderrData) ? 'JAVA_NOT_FOUND' : 'RENDER_FAILED',
           })
         );
       }

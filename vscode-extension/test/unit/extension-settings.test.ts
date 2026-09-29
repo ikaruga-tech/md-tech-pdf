@@ -167,6 +167,19 @@ describe('extension-settings', () => {
       assert.strictEqual(settings.export.afterExport, 'reveal');
     });
 
+    it('should parse browser.executablePath and treat empty values as auto-detect', () => {
+      assert.strictEqual(parseExtensionSettings().browser.executablePath, undefined);
+      assert.strictEqual(
+        parseExtensionSettings({ browser: { executablePath: '   ' } }).browser.executablePath,
+        undefined
+      );
+      assert.strictEqual(
+        parseExtensionSettings({ browser: { executablePath: '  /usr/bin/chromium  ' } }).browser
+          .executablePath,
+        '/usr/bin/chromium'
+      );
+    });
+
     it('should validate afterExport and fall back to none on invalid values', () => {
       const noneSetting = parseExtensionSettings({ export: { afterExport: 'none' } });
       assert.strictEqual(noneSetting.export.afterExport, 'none');

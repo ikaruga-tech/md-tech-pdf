@@ -26,12 +26,23 @@ The `md-tech-pdf` extension provides a side-by-side preview panel and one-click 
 
 ## Commands
 
-| Command                         | Title                        | Description                                                  |
-| :------------------------------ | :--------------------------- | :----------------------------------------------------------- |
-| `md-tech-pdf.openPreview`       | `Open Technical PDF Preview` | Opens side-by-side preview panel for active Markdown file.   |
-| `md-tech-pdf.exportPdf`         | `Export to PDF`              | Exports PDF to the configured directory or input directory.  |
-| `md-tech-pdf.exportPdfAs`       | `Export to PDF As...`        | Opens save dialog to choose custom PDF destination.          |
-| `md-tech-pdf.clearDiagramCache` | `Clear Diagram Cache`        | Purges all cached SVG diagrams from memory and disk storage. |
+| Command                           | Title                        | Description                                                                    |
+| :-------------------------------- | :--------------------------- | :----------------------------------------------------------------------------- |
+| `md-tech-pdf.openPreview`         | `Open Technical PDF Preview` | Opens side-by-side preview panel for active Markdown file.                     |
+| `md-tech-pdf.exportPdf`           | `Export to PDF`              | Exports PDF to the configured directory or input directory.                    |
+| `md-tech-pdf.exportPdfAs`         | `Export to PDF As...`        | Opens save dialog to choose custom PDF destination.                            |
+| `md-tech-pdf.clearDiagramCache`   | `Clear Diagram Cache`        | Purges all cached SVG diagrams from memory and disk storage.                   |
+| `md-tech-pdf.downloadPlantUmlJar` | `Download PlantUML Jar`      | Downloads `plantuml.jar` into the extension storage and uses it automatically. |
+| `md-tech-pdf.runDoctor`           | `Run Doctor (環境診断)`      | Checks browser, Java, PlantUML jar, Mermaid CLI, and PDF engine.               |
+
+## Environment Setup & Troubleshooting
+
+md-tech-pdf needs a Chromium-based browser for Mermaid diagrams and PDF export, and Java plus `plantuml.jar` for PlantUML diagrams.
+
+- **Browser auto-detection**: An installed Google Chrome, Microsoft Edge, Brave, or Chromium is found automatically and shared by the preview and PDF export, so both render identically. Set `md-tech-pdf.browser.executablePath` to pick a specific browser.
+- **PlantUML jar**: Run `md-tech-pdf: Download PlantUML Jar`. The jar is saved to the extension storage and used while `md-tech-pdf.plantuml.jarPath` is empty.
+- **Doctor**: Run `md-tech-pdf: Run Doctor (環境診断)` to see a report in the `md-tech-pdf: Doctor` output channel. Each item is marked `OK`, `WARNING`, `ERROR`, or `NOT_CONFIGURED` with a hint for fixing it.
+- **Error cards**: Diagram errors caused by the environment show a Japanese or English message (following the VS Code display language) with **Run Doctor**, **Download PlantUML Jar**, and **Open Settings** buttons.
 
 ## Quick Usage
 

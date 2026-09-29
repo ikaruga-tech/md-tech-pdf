@@ -50,6 +50,9 @@ export interface DefaultDocumentSettings {
 }
 
 export interface ExtensionSettings {
+  browser: {
+    executablePath?: string;
+  };
   plantuml: {
     javaPath: string;
     jarPath?: string;
@@ -77,6 +80,9 @@ export interface ExtensionSettings {
 }
 
 export interface RawExtensionSettings {
+  browser?: {
+    executablePath?: string;
+  };
   plantuml?: {
     javaPath?: string;
     jarPath?: string;
@@ -134,6 +140,10 @@ export interface RawExtensionSettings {
  * Normalizes empty strings and whitespace to undefined / defaults.
  */
 export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSettings {
+  const rawBrowserPath = raw?.browser?.executablePath;
+  const browserExecutablePath =
+    rawBrowserPath && rawBrowserPath.trim() ? rawBrowserPath.trim() : undefined;
+
   const rawJavaPath = raw?.plantuml?.javaPath;
   const javaPath = rawJavaPath && rawJavaPath.trim() ? rawJavaPath.trim() : 'java';
 
@@ -231,6 +241,9 @@ export function parseExtensionSettings(raw?: RawExtensionSettings): ExtensionSet
   }
 
   return {
+    browser: {
+      executablePath: browserExecutablePath,
+    },
     plantuml: {
       javaPath,
       jarPath,

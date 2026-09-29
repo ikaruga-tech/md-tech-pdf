@@ -2,7 +2,7 @@
   "name": "md-tech-pdf",
   "displayName": "md-tech-pdf",
   "description": "Export technical Markdown documents to PDF with Mermaid and PlantUML support.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "ikaruga-tech",
   "icon": "media/icon.png",
   "license": "Apache-2.0",
@@ -59,6 +59,14 @@
       {
         "command": "md-tech-pdf.clearDiagramCache",
         "title": "md-tech-pdf: Clear Diagram Cache"
+      },
+      {
+        "command": "md-tech-pdf.downloadPlantUmlJar",
+        "title": "md-tech-pdf: Download PlantUML Jar"
+      },
+      {
+        "command": "md-tech-pdf.runDoctor",
+        "title": "md-tech-pdf: Run Doctor (環境診断)"
       }
     ],
     "menus": {
@@ -85,6 +93,11 @@
     "configuration": {
       "title": "md-tech-pdf",
       "properties": {
+        "md-tech-pdf.browser.executablePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to a Chromium-based browser (Google Chrome, Microsoft Edge, etc.) used for Mermaid rendering and PDF export. Leave empty to auto-detect an installed browser.\n\nMermaid 描画と PDF 出力に使用するブラウザ（Google Chrome / Microsoft Edge など）の実行ファイルの絶対パス。空欄の場合はインストール済みのブラウザを自動検出します。"
+        },
         "md-tech-pdf.plantuml.javaPath": {
           "type": "string",
           "default": "java",
@@ -93,7 +106,7 @@
         "md-tech-pdf.plantuml.jarPath": {
           "type": "string",
           "default": "",
-          "description": "Path to the local PlantUML JAR file."
+          "description": "Path to the local PlantUML JAR file. When empty, the jar downloaded by \"md-tech-pdf: Download PlantUML Jar\" is used automatically."
         },
         "md-tech-pdf.export.outputDirectory": {
           "type": "string",
@@ -300,7 +313,7 @@
     "package:vsix": "vsce package"
   },
   "dependencies": {
-    "md-tech-pdf": "file:../md-tech-pdf-0.3.0.tgz"
+    "md-tech-pdf": "file:../md-tech-pdf-0.4.0.tgz"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

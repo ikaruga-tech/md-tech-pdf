@@ -18,6 +18,9 @@ export function getExtensionSettings(): ExtensionSettings {
   const config = vscode.workspace.getConfiguration('md-tech-pdf');
 
   return parseExtensionSettings({
+    browser: {
+      executablePath: config.get<string>('browser.executablePath'),
+    },
     plantuml: {
       javaPath: config.get<string>('plantuml.javaPath'),
       jarPath: config.get<string>('plantuml.jarPath'),

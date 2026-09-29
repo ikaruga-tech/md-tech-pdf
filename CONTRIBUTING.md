@@ -67,7 +67,7 @@ VS Code extension directory (`vscode-extension/`):
 - `npm run build`: Compile extension TypeScript sources to `dist/`.
 - `npm run typecheck`: Run type checking on extension and test suites.
 - `npm run test:unit`: Run Mocha unit tests for extension components.
-- `npx @vscode/vsce package --no-dependencies`: Package the `.vsix` extension file.
+- `npm run package:vsix`: Package the `.vsix` extension file.
 
 ### Coding Standards
 

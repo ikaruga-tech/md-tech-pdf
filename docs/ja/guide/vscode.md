@@ -26,9 +26,20 @@
 
 ## コマンド一覧
 
-| コマンド                        | タイトル                     | 説明                                                          |
-| :------------------------------ | :--------------------------- | :------------------------------------------------------------ |
-| `md-tech-pdf.openPreview`       | `Open Technical PDF Preview` | アクティブな Markdown ドキュメントのプレビューを開きます。    |
-| `md-tech-pdf.exportPdf`         | `Export to PDF`              | 設定された出力先（または同ディレクトリ）へ PDF を出力します。 |
-| `md-tech-pdf.exportPdfAs`       | `Export to PDF As...`        | 出力先ファイル名を指定して PDF を出力します。                 |
-| `md-tech-pdf.clearDiagramCache` | `Clear Diagram Cache`        | キャッシュされたダイアグラム SVG を安全に全消去します。       |
+| コマンド                          | タイトル                     | 説明                                                                      |
+| :-------------------------------- | :--------------------------- | :------------------------------------------------------------------------ |
+| `md-tech-pdf.openPreview`         | `Open Technical PDF Preview` | アクティブな Markdown ドキュメントのプレビューを開きます。                |
+| `md-tech-pdf.exportPdf`           | `Export to PDF`              | 設定された出力先（または同ディレクトリ）へ PDF を出力します。             |
+| `md-tech-pdf.exportPdfAs`         | `Export to PDF As...`        | 出力先ファイル名を指定して PDF を出力します。                             |
+| `md-tech-pdf.clearDiagramCache`   | `Clear Diagram Cache`        | キャッシュされたダイアグラム SVG を安全に全消去します。                   |
+| `md-tech-pdf.downloadPlantUmlJar` | `Download PlantUML Jar`      | `plantuml.jar` を拡張機能のストレージへダウンロードし、自動で使用します。 |
+| `md-tech-pdf.runDoctor`           | `Run Doctor (環境診断)`      | ブラウザ・Java・PlantUML jar・Mermaid CLI・PDF エンジンを診断します。     |
+
+## 環境構築とトラブルシューティング
+
+md-tech-pdf では、Mermaid ダイアグラムの描画と PDF 出力に Chromium 系ブラウザが、PlantUML ダイアグラムの描画に Java と `plantuml.jar` が必要です。
+
+- **ブラウザの自動検出**: インストール済みの Google Chrome / Microsoft Edge / Brave / Chromium を自動で検出し、プレビューと PDF 出力の両方で同じブラウザを使用します（描画結果が完全に一致します）。特定のブラウザを使う場合は `md-tech-pdf.browser.executablePath` を指定してください。
+- **PlantUML jar**: コマンド `md-tech-pdf: Download PlantUML Jar` を実行すると、拡張機能のストレージに jar を保存します。`md-tech-pdf.plantuml.jarPath` が空欄の間は、この jar が自動で使用されます。
+- **環境診断（Doctor）**: コマンド `md-tech-pdf: Run Doctor (環境診断)` を実行すると、`md-tech-pdf: Doctor` 出力チャネルにレポートが表示されます。各項目は `OK` / `WARNING` / `ERROR` / `NOT_CONFIGURED` で判定され、解決方法も併記されます。
+- **エラーカード**: 環境に起因するダイアグラムのエラーは、VS Code の表示言語に合わせて日本語または英語で案内され、「環境診断を実行」「PlantUML jar をダウンロード」「設定を開く」ボタンからすぐに対処できます。

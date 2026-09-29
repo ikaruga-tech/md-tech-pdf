@@ -68,6 +68,17 @@ const mockVscode = {
     }),
     visibleTextEditors: [] as any[],
   },
+  env: {
+    language: 'en',
+  },
+  commands: {
+    executeCommand: async (..._args: unknown[]) => undefined,
+  },
+  ProgressLocation: {
+    SourceControl: 1,
+    Window: 10,
+    Notification: 15,
+  },
   TextEditorRevealType: {
     Default: 0,
     InCenter: 1,
@@ -128,3 +139,7 @@ require.cache['vscode'] = {
   exports: mockVscode,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
+
+export function setMockLanguage(language: string): void {
+  mockVscode.env.language = language;
+}

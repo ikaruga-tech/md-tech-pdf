@@ -34,5 +34,6 @@ Front Matter に記述がない場合にフォールバック適用される値�
 - `md-tech-pdf.export.outputDirectory`: PDF 出力先ディレクトリの相対または絶対パス。
 - `md-tech-pdf.export.afterExport`: PDF 出力完了後の動作（`"none"`, `"open"`, `"reveal"`）。
 - `md-tech-pdf.styles`: ワークスペース全体で共通適用する CSS ファイルパスの配列。
+- `md-tech-pdf.browser.executablePath`: Mermaid 描画と PDF 出力に使用する Chromium 系ブラウザ（Chrome / Edge など）の絶対パス。空欄（既定）の場合はインストール済みのブラウザを自動検出します。
 - `md-tech-pdf.plantuml.javaPath`: 独自の `java` バイナリパス。
-- `md-tech-pdf.plantuml.jarPath`: 独自の `plantuml.jar` のパス。
+- `md-tech-pdf.plantuml.jarPath`: 独自の `plantuml.jar` のパス。空欄（既定）の場合は `md-tech-pdf: Download PlantUML Jar` でダウンロードした jar を使用します。

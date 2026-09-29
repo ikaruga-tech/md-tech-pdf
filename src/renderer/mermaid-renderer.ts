@@ -5,6 +5,10 @@ import { executeMermaidCli } from './mermaid-executor.js';
 export interface MermaidRendererOptions {
   defaultTheme?: string;
   defaultBackgroundColor?: string;
+  /**
+   * Absolute path to a Chromium-based browser used by Mermaid CLI (Puppeteer).
+   */
+  browserExecutablePath?: string;
 }
 
 /**
@@ -15,10 +19,12 @@ export interface MermaidRendererOptions {
 export class MermaidRenderer implements DiagramRenderer {
   private readonly defaultTheme?: string;
   private readonly defaultBackgroundColor?: string;
+  private readonly browserExecutablePath?: string;
 
   constructor(options?: MermaidRendererOptions) {
     this.defaultTheme = options?.defaultTheme;
     this.defaultBackgroundColor = options?.defaultBackgroundColor;
+    this.browserExecutablePath = options?.browserExecutablePath;
   }
 
   /**
@@ -42,6 +48,7 @@ export class MermaidRenderer implements DiagramRenderer {
     return executeMermaidCli(source, {
       theme,
       backgroundColor,
+      browserExecutablePath: this.browserExecutablePath,
     });
   }
 }

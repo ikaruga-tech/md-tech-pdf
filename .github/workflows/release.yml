@@ -39,7 +39,7 @@ jobs:
         run: |
           npm ci
           npm run build
-          npx @vscode/vsce package --no-dependencies
+          npm run package:vsix
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

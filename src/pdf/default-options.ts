@@ -1,6 +1,8 @@
 import type { PdfMargin, PdfOptions } from './types.js';
 
-export interface DefaultPdfOptions extends Required<Omit<PdfOptions, 'margin'>> {
+export interface DefaultPdfOptions extends Required<
+  Omit<PdfOptions, 'margin' | 'browserExecutablePath'>
+> {
   margin: Required<PdfMargin>;
 }
 

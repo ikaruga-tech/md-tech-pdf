@@ -27,7 +27,11 @@ const KNOWN_JAVA_CANDIDATES = [
   '/opt/homebrew/opt/openjdk/bin/java',
 ];
 
-function resolveDefaultJavaPath(): string {
+/**
+ * Resolves the Java executable used when no javaPath is configured
+ * (PLANTUML_JAVA_PATH, JAVA_HOME, well-known install locations, then "java" on PATH).
+ */
+export function resolveDefaultJavaPath(): string {
   if (process.env.PLANTUML_JAVA_PATH) {
     return process.env.PLANTUML_JAVA_PATH;
   }
@@ -45,7 +49,11 @@ function resolveDefaultJavaPath(): string {
   return 'java';
 }
 
-function resolveDefaultJarPath(): string | undefined {
+/**
+ * Resolves the PlantUML jar used when no jarPath is configured
+ * (PLANTUML_JAR_PATH, known editor extension bundles, well-known install locations).
+ */
+export function resolveDefaultJarPath(): string | undefined {
   if (process.env.PLANTUML_JAR_PATH) {
     return process.env.PLANTUML_JAR_PATH;
   }
@@ -110,7 +118,8 @@ export class PlantUmlRenderer implements DiagramRenderer {
 
     if (!this.jarPath) {
       throw new DiagramRenderError(
-        'PlantUML jar path is not configured. Please specify jarPath in PlantUmlRendererOptions or set PLANTUML_JAR_PATH.'
+        'PlantUML jar path is not configured. Please specify jarPath in PlantUmlRendererOptions or set PLANTUML_JAR_PATH.',
+        { code: 'PLANTUML_JAR_NOT_CONFIGURED' }
       );
     }
 

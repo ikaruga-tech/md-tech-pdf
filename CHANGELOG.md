@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-09-29
+
+### Added
+
+- System browser auto-detection: installed Google Chrome, Microsoft Edge, Brave, or Chromium is detected per OS (macOS / Windows / Linux) and shared by preview and PDF export, so Mermaid renders even without the bundled chrome-headless-shell.
+- `md-tech-pdf.browser.executablePath` setting (default: `""` = auto-detect).
+- `md-tech-pdf: Download PlantUML Jar` command (`md-tech-pdf.downloadPlantUmlJar`): cancellable download of `plantuml.jar` from the official GitHub releases into `globalStorage/bin/plantuml.jar`. Used automatically while `md-tech-pdf.plantuml.jarPath` is empty; open previews refresh after the download.
+- `md-tech-pdf: Run Doctor (環境診断)` command (`md-tech-pdf.runDoctor`): checks browser, Java runtime, PlantUML jar, Mermaid CLI, and PDF export engine and writes a report to the `md-tech-pdf: Doctor` output channel.
+- Japanese / English UI messages following the VS Code display language.
+
+### Changed
+
+- Diagram error cards in the preview now show friendly, localized guidance with one-click **Run Doctor**, **Download PlantUML Jar**, and **Open Settings** buttons; raw error output moved into a collapsible **Error details** section.
+- The first-render diagram error notification now offers **Open Doctor**, and PDF export failures caused by the environment show localized guidance with action buttons.
+- Requires md-tech-pdf core 0.4.0.
+
+### Core (md-tech-pdf 0.4.0)
+
+- `config.browser.executablePath` (`ConvertAppConfig`) to render Mermaid diagrams and generate PDFs with an installed browser (e.g. Google Chrome / Microsoft Edge). The same browser is passed to Mermaid CLI (Puppeteer config via `-p`, new headless mode) and Playwright (`chromium.launch({ executablePath })`).
+- `browserExecutablePath` option on `MermaidRendererOptions`, `HtmlRendererConfig`, and `PdfOptions`.
+- Machine-readable error codes: `DiagramRenderError.code` (`BROWSER_NOT_FOUND`, `PLANTUML_JAR_NOT_CONFIGURED`, `PLANTUML_JAR_NOT_FOUND`, `JAVA_NOT_FOUND`, `RENDER_FAILED`) and `PdfGenerateError.code` (`BROWSER_NOT_FOUND`, `GENERATION_FAILED`). `DiagramErrorEvent` now includes `code`.
+- `HtmlRenderOptions.diagramErrorHtmlBuilder` hook to replace the preview diagram error card (e.g. localized guidance).
+- `JAVA_NOT_FOUND` is also reported when a `java` launcher exists but cannot run Java (e.g. the macOS `/usr/bin/java` stub without a JRE, or a binary for another CPU architecture).
+- Exported `resolveDefaultJarPath()` / `resolveDefaultJavaPath()`, `buildMermaidCliArgs()`, `ensurePuppeteerConfigFile()`, `isBrowserLaunchFailure()`, and `isJavaUnavailableOutput()`.
+
 ## [0.6.0] - 2026-09-28
 
 ### Added

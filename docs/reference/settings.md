@@ -34,5 +34,6 @@ When omitted from document Front Matter, these values apply:
 - `md-tech-pdf.export.outputDirectory`: Relative or absolute path where PDFs are saved.
 - `md-tech-pdf.export.afterExport`: Post-export action (`"none"`, `"open"`, `"reveal"`).
 - `md-tech-pdf.styles`: Workspace or global array of CSS files applied to all previews and exports.
+- `md-tech-pdf.browser.executablePath`: Absolute path to a Chromium-based browser (Chrome / Edge, etc.) used for Mermaid rendering and PDF export. Empty (default) auto-detects an installed browser.
 - `md-tech-pdf.plantuml.javaPath`: Path to custom Java binary.
-- `md-tech-pdf.plantuml.jarPath`: Path to custom PlantUML `.jar`.
+- `md-tech-pdf.plantuml.jarPath`: Path to custom PlantUML `.jar`. Empty (default) uses the jar downloaded by `md-tech-pdf: Download PlantUML Jar`.

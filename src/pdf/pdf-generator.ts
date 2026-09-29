@@ -53,9 +53,13 @@ export class PdfGenerator implements PdfGeneratorInterface {
     try {
       browser = await chromium.launch({
         headless: true,
+        executablePath: options?.browserExecutablePath,
       });
     } catch (err) {
-      throw new PdfGenerateError('Failed to launch Chromium browser.', { cause: err });
+      throw new PdfGenerateError('Failed to launch Chromium browser.', {
+        cause: err,
+        code: 'BROWSER_NOT_FOUND',
+      });
     }
 
     try {

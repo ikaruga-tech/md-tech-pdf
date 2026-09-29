@@ -26,7 +26,7 @@ CI/CDなどのパイプライン向けスタンドアロンCLIおよびCoreラ�
 ## 前提環境 (Requirements)
 
 - **Node.js**: `>= 22.13.0`
-- **Playwright / Chromium**: PDFレンダリングに必要です（依存関係に含まれます）。
+- **Playwright / Chromium**: PDFレンダリングに必要です（依存関係に含まれます）。ライブラリ API の `config.browser.executablePath` でインストール済みの Google Chrome / Microsoft Edge を代わりに利用できます（VS Code 拡張機能では自動検出されます）。
 - **Java ランタイム & PlantUML jar**: PlantUMLダイアグラムを描画する場合のみ必要です（Mermaidのみを使用する場合はJavaは不要です）。
 - **インターネット接続**: Google Fontsを利用する場合のみ必要です（オフライン時はシステムフォントへ自動フォールバックします）。
 
@@ -305,6 +305,10 @@ const result = await convertMarkdownToPdf('docs/specification.md', {
     },
     plantuml: {
       javaPath: '/usr/bin/java',
+    },
+    // 任意: インストール済みブラウザを Mermaid 描画と PDF 出力の両方で利用
+    browser: {
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     },
   },
   onProgress: (event) => {

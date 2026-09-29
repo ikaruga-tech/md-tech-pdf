@@ -5,7 +5,11 @@ import {
   getExtensionSettings,
   resolveCustomOutputPath,
 } from '../config/extension-settings.js';
+import { getExportErrorGuidance } from '../environment/error-guidance.js';
+import { resolveRenderEnvironment } from '../environment/render-environment.js';
+import { getLocale, t } from '../i18n/index.js';
 import { getErrorMessage } from '../utils/error-utils.js';
+import { showGuidanceNotification } from './guidance-actions.js';
 import { createPdfOutputPath, ensurePdfExtension, isMarkdownPath } from '../utils/path-utils.js';
 
 export {
@@ -145,9 +149,11 @@ export async function resolveTargetInputPath(resource?: vscode.Uri): Promise<str
 export async function executePdfExport(
   inputPath: string,
   outputPath: string,
-  settings?: ExtensionSettings
+  settings?: ExtensionSettings,
+  globalStorageDir?: string
 ): Promise<void> {
   const extSettings = settings ?? getExtensionSettings();
+  const renderEnvironment = resolveRenderEnvironment(extSettings, globalStorageDir);
 
   try {
     const { convertMarkdownToPdf } = await import('md-tech-pdf');
@@ -179,10 +185,16 @@ export async function executePdfExport(
           config: {
             pdf: extSettings.default.pdf,
             diagram: extSettings.default.diagram,
-            plantuml: extSettings.plantuml,
+            plantuml: {
+              ...extSettings.plantuml,
+              jarPath: renderEnvironment.plantumlJarPath,
+            },
             style: {
               font: extSettings.default.style.font,
               css: resolvedStyles.length > 0 ? resolvedStyles : undefined,
+            },
+            browser: {
+              executablePath: renderEnvironment.browserExecutablePath,
             },
           },
         });
@@ -207,38 +219,52 @@ export async function executePdfExport(
     await showExportSuccess(outputPath);
   } catch (error: unknown) {
     console.error('[md-tech-pdf] PDF export failed', error);
-    await vscode.window.showErrorMessage(`md-tech-pdf: ${getErrorMessage(error)}`);
+    const locale = getLocale();
+    const guidance = getExportErrorGuidance(error, locale);
+    if (guidance) {
+      await showGuidanceNotification(guidance, locale);
+    } else {
+      await vscode.window.showErrorMessage(
+        t('export.failed', { message: getErrorMessage(error) }, locale)
+      );
+    }
   }
 }
 
 /**
- * Command handler for "md-tech-pdf: Export to PDF".
+ * Creates the command handler for "md-tech-pdf: Export to PDF".
  * Exports specified Markdown file (from Explorer context menu) or currently active file
  * to a vector PDF in the configured directory or same directory.
  */
-export async function exportPdfCommand(resource?: vscode.Uri): Promise<void> {
-  const settings = getExtensionSettings();
-  const inputPath = await resolveTargetInputPath(resource);
-  if (!inputPath) {
-    return;
-  }
+export function createExportPdfCommand(globalStorageDir?: string) {
+  return async function exportPdfCommand(resource?: vscode.Uri): Promise<void> {
+    const settings = getExtensionSettings();
+    const inputPath = await resolveTargetInputPath(resource);
+    if (!inputPath) {
+      return;
+    }
 
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(inputPath))?.uri
-    .fsPath;
-  const outputPath = resolveCustomOutputPath(
-    inputPath,
-    settings.export.outputDirectory,
-    workspaceFolder
-  );
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(inputPath))?.uri
+      .fsPath;
+    const outputPath = resolveCustomOutputPath(
+      inputPath,
+      settings.export.outputDirectory,
+      workspaceFolder
+    );
 
-  await executePdfExport(inputPath, outputPath, settings);
+    await executePdfExport(inputPath, outputPath, settings, globalStorageDir);
+  };
 }
 
 /**
- * Command handler for "md-tech-pdf: Export to PDF As...".
+ * Creates the command handler for "md-tech-pdf: Export to PDF As...".
  * Prompts user with a standard Save Dialog to choose destination path and filename.
  */
-export async function exportPdfAsCommand(): Promise<void> {
+export function createExportPdfAsCommand(globalStorageDir?: string) {
+  return () => exportPdfAs(globalStorageDir);
+}
+
+async function exportPdfAs(globalStorageDir?: string): Promise<void> {
   const settings = getExtensionSettings();
   const document = await prepareActiveMarkdownDocument();
   if (!document) {
@@ -262,5 +288,5 @@ export async function exportPdfAsCommand(): Promise<void> {
   }
 
   const outputPath = ensurePdfExtension(targetUri.fsPath);
-  await executePdfExport(inputPath, outputPath, settings);
+  await executePdfExport(inputPath, outputPath, settings, globalStorageDir);
 }
