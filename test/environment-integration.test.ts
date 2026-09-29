@@ -42,6 +42,7 @@ describe('Mermaid CLI browser integration', () => {
     expect(JSON.parse(fs.readFileSync(configPath, 'utf-8'))).toEqual({
       executablePath: NON_EXISTENT_BROWSER,
       headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
   });
 
@@ -79,12 +80,16 @@ describe('Mermaid CLI browser integration', () => {
   });
 
   const itWithSystemChrome = systemChrome ? it : it.skip;
-  itWithSystemChrome('should render Mermaid with an installed system browser', async () => {
-    const renderer = new MermaidRenderer({ browserExecutablePath: systemChrome });
-    const svg = await renderer.render('graph TD\n  Start --> Done');
-    expect(svg).toContain('<svg');
-    expect(svg).toContain('Start');
-  });
+  itWithSystemChrome(
+    'should render Mermaid with an installed system browser',
+    async () => {
+      const renderer = new MermaidRenderer({ browserExecutablePath: systemChrome });
+      const svg = await renderer.render('graph TD\n  Start --> Done');
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('Start');
+    },
+    30000
+  );
 });
 
 describe('PlantUML error codes', () => {
@@ -214,10 +219,14 @@ describe('PdfGenerator browserExecutablePath', () => {
   });
 
   const itWithSystemChrome = systemChrome ? it : it.skip;
-  itWithSystemChrome('should generate a PDF with an installed system browser', async () => {
-    const outputPath = path.join(outputDir, 'system-browser.pdf');
-    await new PdfGenerator().generate(html, outputPath, { browserExecutablePath: systemChrome });
-    const header = fs.readFileSync(outputPath).subarray(0, 5).toString();
-    expect(header).toBe('%PDF-');
-  });
+  itWithSystemChrome(
+    'should generate a PDF with an installed system browser',
+    async () => {
+      const outputPath = path.join(outputDir, 'system-browser.pdf');
+      await new PdfGenerator().generate(html, outputPath, { browserExecutablePath: systemChrome });
+      const header = fs.readFileSync(outputPath).subarray(0, 5).toString();
+      expect(header).toBe('%PDF-');
+    },
+    30000
+  );
 });

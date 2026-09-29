@@ -33,13 +33,15 @@ export function isBrowserLaunchFailure(stderr: string): boolean {
 export function ensurePuppeteerConfigFile(browserExecutablePath: string): string {
   const hash = crypto.createHash('sha1').update(browserExecutablePath).digest('hex').slice(0, 16);
   const configPath = path.join(os.tmpdir(), `md-tech-pdf-puppeteer-${hash}.json`);
-  if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(
-      configPath,
-      JSON.stringify({ executablePath: browserExecutablePath, headless: true }),
-      'utf-8'
-    );
-  }
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify({
+      executablePath: browserExecutablePath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    }),
+    'utf-8'
+  );
   return configPath;
 }
 
